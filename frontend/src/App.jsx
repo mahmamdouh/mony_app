@@ -11,11 +11,37 @@ const GlassPanel = ({ children, className = '' }) => (
 
 function App() {
   const [time, setTime] = useState(new Date());
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleAddAlarm = async () => {
+    const time = prompt("Enter alarm time (HH:MM):", "07:00");
+    if (!time) return;
+    const label = prompt("Enter alarm label:", "Morning Alarm");
+    if (!label) return;
+    
+    try {
+      await axios.post("/api/alarms", {
+        time,
+        label,
+        days: "Mon,Tue,Wed,Thu,Fri",
+        active: true
+      });
+      alert(`Alarm ${time} added!`);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to add alarm.");
+    }
+  };
+
+  const handlePlayToggle = () => {
+    setIsPlaying(!isPlaying);
+    alert(isPlaying ? "Paused Radio" : "Playing Radio...");
+  };
 
   return (
     <div className="min-h-screen text-slate-100 p-4 md:p-8 flex flex-col font-sans relative overflow-hidden" 
@@ -69,7 +95,9 @@ function App() {
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <Bell className="w-5 h-5 text-purple-400" /> Alarms
               </h3>
-              <button className="text-sm bg-purple-500/20 hover:bg-purple-500/40 px-3 py-1 rounded-full text-purple-300 transition-colors">
+              <button 
+                onClick={handleAddAlarm}
+                className="text-sm bg-purple-500/20 hover:bg-purple-500/40 px-3 py-1 rounded-full text-purple-300 transition-colors">
                 + Add
               </button>
             </div>
@@ -121,10 +149,12 @@ function App() {
 
             <div className="flex justify-center items-center gap-6 mt-auto">
               <button className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/5">
-                <music className="w-6 h-6" />
+                <Music className="w-6 h-6" />
               </button>
-              <button className="p-5 bg-blue-500 hover:bg-blue-400 rounded-full transition-all shadow-lg shadow-blue-500/20 transform hover:scale-105 text-white">
-                <Play className="w-8 h-8 fill-current" />
+              <button 
+                onClick={handlePlayToggle}
+                className="p-5 bg-blue-500 hover:bg-blue-400 rounded-full transition-all shadow-lg shadow-blue-500/20 transform hover:scale-105 text-white flex items-center justify-center w-16 h-16">
+                {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current translate-x-0.5" />}
               </button>
               <button className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/5">
                 <UploadCloud className="w-6 h-6" />

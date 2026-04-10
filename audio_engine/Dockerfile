@@ -7,12 +7,16 @@ RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/reposit
     shairport-sync \
     librespot \
     alsa-utils \
-    supervisor
+    supervisor \
+    dbus \
+    avahi
+
+RUN mkdir -p /var/run/dbus && \
+    rm -f /var/run/dbus/pid && \
+    dbus-uuidgen > /var/lib/dbus/machine-id
 
 # Configure supervisor to run both services
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# We use host networking for avahi to work easily, otherwise we'd need avahi daemon running
-# and DBus setup, which is heavy. Shairport-sync works better in host network mode for discovery.
-
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+
