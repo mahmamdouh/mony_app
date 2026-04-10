@@ -11,6 +11,7 @@ def init_db():
                 time TEXT NOT NULL,
                 label TEXT,
                 days TEXT,
+                sound_file TEXT,
                 active BOOLEAN DEFAULT 1
             )
         ''')
@@ -33,6 +34,13 @@ def init_db():
                 isha_adhan TEXT
             )
         ''')
+        
+    # Attempt to gracefully add sound_file if we are upgrading
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("ALTER TABLE alarms ADD COLUMN sound_file TEXT")
+    except sqlite3.OperationalError:
+        pass # Column already exists
         
 init_db()
 

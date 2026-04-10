@@ -119,3 +119,11 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "app": "Mony"}
+
+@app.get("/api/test_speaker")
+async def test_speaker():
+    import asyncio
+    # Background task so it doesn't block request
+    asyncio.create_task(play_tts("Test successful! Mony systems are online.", "test_speaker"))
+    return {"status": "ok"}
+
