@@ -12,6 +12,19 @@ const GlassPanel = ({ children, className = '' }) => (
 function App() {
   const [time, setTime] = useState(new Date());
   const [isPlaying, setIsPlaying] = useState(false);
+  const [radioIndex, setRadioIndex] = useState(0);
+
+  const radioStations = [
+    { name: "Quran Kareem Radio", location: "Cairo, Egypt" },
+    { name: "Mega FM 92.7", location: "Cairo, Egypt" },
+    { name: "Nogoum FM 100.6", location: "Cairo, Egypt" },
+    { name: "Radio Misr 88.7", location: "Cairo, Egypt" },
+    { name: "90s FM", location: "Cairo, Egypt" },
+    { name: "Mix FM", location: "Cairo, Egypt" },
+    { name: "Radio HIT", location: "Cairo, Egypt" }
+  ];
+
+  const currentRadio = radioStations[radioIndex];
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -40,8 +53,11 @@ function App() {
 
   const handlePlayToggle = () => {
     setIsPlaying(!isPlaying);
-    alert(isPlaying ? "Paused Radio" : "Playing Radio...");
+    alert(isPlaying ? `Paused ${currentRadio.name}` : `Playing ${currentRadio.name}...`);
   };
+
+  const nextRadio = () => setRadioIndex((prev) => (prev + 1) % radioStations.length);
+  const prevRadio = () => setRadioIndex((prev) => (prev - 1 + radioStations.length) % radioStations.length);
 
   return (
     <div className="min-h-screen text-slate-100 p-4 md:p-8 flex flex-col font-sans relative overflow-hidden" 
@@ -136,15 +152,25 @@ function App() {
             <div className="aspect-square bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden group shadow-inner">
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
               <Radio className="w-24 h-24 text-white/50 group-hover:scale-110 transition-transform duration-500" />
-              <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 border border-white/10">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                LIVE
-              </div>
+              {isPlaying && (
+                <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 border border-white/10">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  LIVE
+                </div>
+              )}
             </div>
 
-            <div className="text-center mb-6">
-              <h4 className="text-2xl font-bold truncate">Quran Kareem Radio</h4>
-              <p className="text-slate-400 text-sm mt-1">Cairo, Egypt</p>
+            <div className="flex items-center justify-between mb-6">
+               <button onClick={prevRadio} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition">
+                 <svg className="w-5 h-5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+               </button>
+               <div className="text-center mx-2 flex-grow min-w-0">
+                 <h4 className="text-2xl font-bold truncate">{currentRadio.name}</h4>
+                 <p className="text-slate-400 text-sm mt-1 truncate">{currentRadio.location}</p>
+               </div>
+               <button onClick={nextRadio} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition">
+                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+               </button>
             </div>
 
             <div className="flex justify-center items-center gap-6 mt-auto">
