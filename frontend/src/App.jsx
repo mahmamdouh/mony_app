@@ -40,19 +40,28 @@ function App() {
   const [isAlarmModalOpen, setAlarmModalOpen] = useState(false);
   const [isMosqueModalOpen, setMosqueModalOpen] = useState(false);
   
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedMosque, setSelectedMosque] = useState(null);
+  
+  const [adhanSettings, setAdhanSettings] = useState({
+    Fajr: "", Dhuhr: "", Asr: "", Maghrib: "", Isha: ""
+  });
+  
   const [prayers, setPrayers] = useState({});
   const [nextPrayerName, setNextPrayerName] = useState("");
   
   const fileInputRef = useRef(null);
 
   const radioStations = [
-    { name: "Quran Kareem", location: "Cairo, Egypt", url: "http://radiostream.com/quran" },
-    { name: "Mega FM 92.7", location: "Cairo, Egypt", url: "http://radiostream.com/mega" },
-    { name: "Nogoum FM 100.6", location: "Cairo, Egypt", url: "http://radiostream.com/nogoum" },
-    { name: "Radio Misr 88.7", location: "Cairo, Egypt", url: "http://radiostream.com/misr" },
-    { name: "90s FM", location: "Cairo, Egypt", url: "http://radiostream.com/90s" },
-    { name: "Mix FM", location: "Cairo, Egypt", url: "http://radiostream.com/mix" },
-    { name: "Radio HIT", location: "Cairo, Egypt", url: "http://radiostream.com/hit" }
+    { name: "Quran Kareem", location: "Cairo, Egypt", url: "http://n0a.radiojar.com/8s5u5tpdtwzuv" },
+    { name: "Nogoum FM 100.6", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
+    { name: "Mega FM 92.7", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
+    { name: "BBC Arabic", location: "London, UK", url: "http://stream.live.vc.bbcmedia.co.uk/bbc_arabic_radio" },
+    { name: "Radio Misr 88.7", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
+    { name: "90s FM", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
+    { name: "Mix FM", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
+    { name: "Radio HIT", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" }
   ];
 
   const currentRadio = radioStations[radioIndex];
@@ -67,8 +76,29 @@ function App() {
   useEffect(() => {
     fetchAlarms();
     fetchMusic();
+    fetchMawaqitSettings();
     calculatePrayers();
   }, [time.getDate()]); // re-calculate prayers if day changes
+
+  const fetchMawaqitSettings = async () => {
+    try {
+      const res = await axios.get("/api/mawaqit/settings");
+      if (res.data) {
+        setAdhanSettings({
+          Fajr: res.data.fajr_adhan || "",
+          Dhuhr: res.data.dhuhr_adhan || "",
+          Asr: res.data.asr_adhan || "",
+          Maghrib: res.data.maghrib_adhan || "",
+          Isha: res.data.isha_adhan || ""
+        });
+        if (res.data.mosque_uuid) {
+          setSelectedMosque({ uuid: res.data.mosque_uuid, name: res.data.mosque_name });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchAlarms = async () => {
     try {
@@ -129,8 +159,10 @@ function App() {
   const testSpeaker = async () => {
     try {
       await axios.get("/api/test_speaker");
+      alert("Test speaker command sent to backend! Note: Audio plays on the hub hardware.");
     } catch (e) {
       console.error(e);
+      alert("Failed to send test speaker command.");
     }
   };
 
@@ -145,6 +177,34 @@ function App() {
       });
     } catch(e) {
       console.error("Radio stream failed", e);
+    }
+  };
+
+  // Mawaqit actions
+  const searchMosques = async () => {
+    if (!searchQuery) return;
+    try {
+      const res = await axios.get(`/api/mawaqit/search?query=${searchQuery}`);
+      setSearchResults(res.data.results || []);
+    } catch(e) { console.error(e); }
+  };
+
+  const saveMawaqitConfig = async () => {
+    try {
+        await axios.post("/api/mawaqit/settings", {
+            mosque_uuid: selectedMosque?.uuid || "",
+            mosque_name: selectedMosque?.name || "",
+            fajr_adhan: adhanSettings.Fajr,
+            dhuhr_adhan: adhanSettings.Dhuhr,
+            asr_adhan: adhanSettings.Asr,
+            maghrib_adhan: adhanSettings.Maghrib,
+            isha_adhan: adhanSettings.Isha
+        });
+        alert("Configuration saved!");
+        setMosqueModalOpen(false);
+    } catch (e) {
+        console.error(e);
+        alert("Failed to save configuration.");
     }
   };
 
@@ -421,23 +481,54 @@ function App() {
         <div className="space-y-4 text-center">
           <MapPin className="w-12 h-12 text-emerald-500 mx-auto opacity-80" />
           <h4 className="text-xl font-bold">Prayer Synchronization</h4>
-          <p className="text-sm text-slate-400">Select MP3 tracks for local playback during prayer times. Synchronization is currently locked to Cairo Coordinates.</p>
+          <p className="text-sm text-slate-400">Search for a mosque to sync with Mawaqit, or set local Adhan tracks.</p>
+
+          <div className="flex gap-2 mt-2">
+            <input 
+              type="text" 
+              placeholder="Search Mosque Name..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-grow bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+            />
+            <button onClick={searchMosques} className="bg-emerald-600 px-4 py-2 rounded-xl text-sm font-bold border border-emerald-500">Search</button>
+          </div>
           
-          <div className="space-y-3 mt-4 text-left">
-             <label className="block text-sm font-bold text-slate-300 mt-4">Fajr Adhan Track</label>
-             <select className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm">
-                <option value="">Default Backend Adhan</option>
-                {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
-             </select>
-             
-             <label className="block text-sm font-bold text-slate-300 mt-2">Standard Adhan Track</label>
-             <select className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm">
-                <option value="">Default Backend Adhan</option>
-                {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
-             </select>
+          {searchResults.length > 0 && (
+             <div className="max-h-32 overflow-y-auto bg-slate-800 border border-slate-600 rounded-xl text-left mt-2 shadow-inner">
+                {searchResults.map(m => (
+                   <div 
+                     key={m.uuid} 
+                     onClick={() => { setSelectedMosque(m); setSearchResults([]); }}
+                     className="p-3 border-b border-slate-700 hover:bg-slate-700 cursor-pointer text-sm font-medium transition-colors text-white">
+                     {m.name}
+                   </div>
+                ))}
+             </div>
+          )}
+          
+          {selectedMosque && (
+             <div className="text-sm text-emerald-400 font-bold mt-2 p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+               Synced with: {selectedMosque.name}
+             </div>
+          )}
+
+          <div className="space-y-3 mt-4 text-left max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+             {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(prayer => (
+                 <div key={prayer}>
+                     <label className="block text-sm font-bold text-slate-300 mt-2">{prayer} Adhan Track</label>
+                     <select 
+                        value={adhanSettings[prayer]}
+                        onChange={(e) => setAdhanSettings({...adhanSettings, [prayer]: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm">
+                        <option value="">Default Backend Adhan</option>
+                        {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
+                     </select>
+                 </div>
+             ))}
           </div>
 
-          <button onClick={() => setMosqueModalOpen(false)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-emerald-600/30 mt-6">
+          <button onClick={saveMawaqitConfig} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-emerald-600/30 mt-6">
             Apply Configuration
           </button>
         </div>

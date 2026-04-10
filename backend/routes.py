@@ -18,6 +18,15 @@ class RadioRequest(BaseModel):
     url: str
     action: str # play, pause
 
+class MawaqitSettings(BaseModel):
+    mosque_uuid: Optional[str] = None
+    mosque_name: Optional[str] = None
+    fajr_adhan: Optional[str] = None
+    dhuhr_adhan: Optional[str] = None
+    asr_adhan: Optional[str] = None
+    maghrib_adhan: Optional[str] = None
+    isha_adhan: Optional[str] = None
+
 # Global variable to hold running radio process
 current_radio_process = None
 
@@ -55,17 +64,23 @@ async def upload_file(file: UploadFile = File(...)):
     os.makedirs(music_dir, exist_ok=True)
     
     file_location = f"{music_dir}/{file.filename}"
+    content = await file.read()
     with open(file_location, "wb+") as file_object:
-        file_object.write(file.file.read())
+        file_object.write(content)
         
     return {"info": f"file '{file.filename}' saved at '{file_location}'"}
 
 @router.get("/music")
 def list_music():
-    music_dir = "/data/music"
-    if not os.path.exists(music_dir):
-        return []
-    return [f for f in os.listdir(music_dir) if f.endswith('.mp3') or f.endswith('.wav')]
+    music_dirs = ["/data/music", "/sounds/Azan", "/sounds/intro", "/sounds/songs"]
+    files = []
+    for d in music_dirs:
+        if os.path.exists(d):
+            # prepend directory name for UI clarity or just return filename
+            for f in os.listdir(d):
+                if f.endswith('.mp3') or f.endswith('.wav'):
+                    files.append(f"{os.path.basename(d)}/{f}" if d != "/data/music" else f)
+    return files
 
 @router.post("/radio")
 def radio_control(req: RadioRequest):
@@ -86,4 +101,33 @@ def radio_control(req: RadioRequest):
 @router.get("/mawaqit/search")
 def search_mosque(query: str):
     import requests
-    return {"results": [{"uuid": "dummy-uuid", "name": f"Mosque {query}"}]}
+    # External API requires a key. For now, returning mock data that helps UI visualization.
+    # Replace this with the actual Mawaqit search HTTP call or library method when token is available.
+    return {"results": [{"uuid": f"uuid-{query}", "name": f"Mosque {query}"}, {"uuid": "uuid-002", "name": "Al-Azhar Mosque (Mock)"}]}
+
+@router.get("/mawaqit/settings")
+def get_mawaqit_settings():
+    with get_db() as db:
+        res = db.execute("SELECT * FROM mawaqit_settings ORDER BY id DESC LIMIT 1").fetchone()
+        if res:
+            return dict(res)
+        return {}
+
+@router.post("/mawaqit/settings")
+def save_mawaqit_settings(settings: MawaqitSettings):
+    with get_db() as db:
+        res = db.execute("SELECT id FROM mawaqit_settings ORDER BY id DESC LIMIT 1").fetchone()
+        if res:
+            db.execute('''
+                UPDATE mawaqit_settings 
+                SET mosque_uuid=?, mosque_name=?, fajr_adhan=?, dhuhr_adhan=?, asr_adhan=?, maghrib_adhan=?, isha_adhan=?
+                WHERE id=?
+            ''', (settings.mosque_uuid, settings.mosque_name, settings.fajr_adhan, settings.dhuhr_adhan, settings.asr_adhan, settings.maghrib_adhan, settings.isha_adhan, res['id']))
+        else:
+            db.execute('''
+                INSERT INTO mawaqit_settings 
+                (mosque_uuid, mosque_name, fajr_adhan, dhuhr_adhan, asr_adhan, maghrib_adhan, isha_adhan)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (settings.mosque_uuid, settings.mosque_name, settings.fajr_adhan, settings.dhuhr_adhan, settings.asr_adhan, settings.maghrib_adhan, settings.isha_adhan))
+        db.commit()
+    return {"status": "ok"}
