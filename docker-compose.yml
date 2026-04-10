@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: mony_backend
+    restart: always
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    devices:
+      - /dev/snd:/dev/snd
+    environment:
+      - TZ=Europe/Amsterdam
+    privileged: true # Sometimes needed for audio device access without complex user mapping 
+
+  audio_engine:
+    build:
+      context: ./audio_engine
+    container_name: mony_audio_engine
+    restart: always
+    network_mode: "host" # Required for AirPlay/Spotify connect discovery
+    volumes:
+      - ./data:/data
+      - ./asound.conf:/etc/asound.conf:ro
+    devices:
+      - /dev/snd:/dev/snd
+    privileged: true
+
+  proxy:
+    build:
+      context: .
+      dockerfile: ./nginx_proxy/Dockerfile
+    container_name: mony_proxy
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

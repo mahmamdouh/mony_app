@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+apscheduler
+edge-tts
+docker
+requests
+python-multipart
+# mawaqit is the Mawaqit API Python Wrapper
+mawaqit

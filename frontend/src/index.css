@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  
+  /* Glassmorphism theme colors */
+  --color-glass-dark: rgba(30, 30, 30, 0.4);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-mony-accent: #8b5cf6;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  /* Dark modern background for glassmorphism */
+  background: linear-gradient(135deg, #09090b 0%, #171717 100%);
+  color: #f8fafc;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+}
