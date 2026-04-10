@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Music, Radio, Sun, Moon, MapPin, UploadCloud, Play, Pause, Settings, Mic2, Activity, Volume2, X, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
-import { Coordinates, CalculationMethod, PrayerTimes, adhan } from 'adhan';
+import { Coordinates, CalculationMethod, PrayerTimes } from 'adhan';
 
 // --- GLASS PANEL UTILITY ---
 const GlassPanel = ({ children, className = '', onClick }) => (
