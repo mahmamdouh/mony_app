@@ -85,6 +85,28 @@ async def play_chime():
     # In a real app we'd have a chime.mp3. For now, beep using espeak or just skip.
     pass
 
+async def play_intro_sound():
+    pause_audio_engine()
+    intro_dir = "/sounds/intro"
+    played = False
+    if os.path.exists(intro_dir):
+        files = [f for f in os.listdir(intro_dir) if f.endswith('.mp3') or f.endswith('.wav')]
+        if files:
+            file_path = os.path.join(intro_dir, files[0])
+            print(f"Playing intro sound: {file_path}")
+            if file_path.endswith('.mp3'):
+                play_proc = await asyncio.create_subprocess_exec("mpg123", "-q", file_path)
+            else:
+                play_proc = await asyncio.create_subprocess_exec("aplay", "-q", file_path)
+            await play_proc.communicate()
+            played = True
+    
+    if not played:
+        # Fallback to TTS if no sounds in intro folder
+        await play_tts("Test successful! Mony systems are online.", "test_speaker")
+    else:
+        resume_audio_engine()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup Boot Sequence
@@ -124,6 +146,6 @@ async def health_check():
 async def test_speaker():
     import asyncio
     # Background task so it doesn't block request
-    asyncio.create_task(play_tts("Test successful! Mony systems are online.", "test_speaker"))
+    asyncio.create_task(play_intro_sound())
     return {"status": "ok"}
 

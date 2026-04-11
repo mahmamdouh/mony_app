@@ -101,9 +101,36 @@ def radio_control(req: RadioRequest):
 @router.get("/mawaqit/search")
 def search_mosque(query: str):
     import requests
-    # External API requires a key. For now, returning mock data that helps UI visualization.
-    # Replace this with the actual Mawaqit search HTTP call or library method when token is available.
-    return {"results": [{"uuid": f"uuid-{query}", "name": f"Mosque {query}"}, {"uuid": "uuid-002", "name": "Al-Azhar Mosque (Mock)"}]}
+    try:
+        geo_req = requests.get(f'https://nominatim.openstreetmap.org/search?q={query}&format=json', headers={'User-Agent': 'Mony/1.0'}, timeout=10)
+        geo_data = geo_req.json()
+        if not geo_data:
+            return {"results": []}
+        lat = geo_data[0]['lat']
+        lon = geo_data[0]['lon']
+        # Hit Mawaqit
+        mq_req = requests.get(f'https://mawaqit.net/api/2.0/mosque/search?lat={lat}&lon={lon}', timeout=10)
+        return {"results": mq_req.json()}
+    except Exception as e:
+        print("Geocoding/Mawaqit search error:", e)
+        return {"results": []}
+
+@router.get("/mawaqit/sync")
+def sync_mawaqit_mosque(slug: str):
+    import requests
+    import re
+    import json
+    try:
+        r = requests.get(f'https://mawaqit.net/en/{slug}', headers={'User-Agent': 'Mozilla/5.0 Mony/1.0'}, timeout=10)
+        times = re.search(r'let confData = (\{.*?\});', r.text)
+        if times:
+            data = json.loads(times.group(1))
+            return {"status": "ok", "calendar": data.get("calendar", []), "times": data.get("times", [])}
+        else:
+            return {"status": "error", "message": "Could not parse times from mosque page."}
+    except Exception as e:
+        print("Sync error:", e)
+        return {"status": "error", "message": str(e)}
 
 @router.get("/mawaqit/settings")
 def get_mawaqit_settings():
@@ -130,4 +157,35 @@ def save_mawaqit_settings(settings: MawaqitSettings):
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (settings.mosque_uuid, settings.mosque_name, settings.fajr_adhan, settings.dhuhr_adhan, settings.asr_adhan, settings.maghrib_adhan, settings.isha_adhan))
         db.commit()
+    return {"status": "ok"}
+
+@router.get("/songs")
+def list_songs():
+    songs_dir = "/sounds/songs"
+    if not os.path.exists(songs_dir):
+        return []
+    return [f for f in os.listdir(songs_dir) if f.endswith('.mp3') or f.endswith('.wav')]
+
+class SongPlayRequest(BaseModel):
+    filename: str
+    action: str
+
+current_song_process = None
+
+@router.post("/songs/play")
+def play_song(req: SongPlayRequest):
+    global current_song_process
+    
+    if current_song_process is not None:
+        current_song_process.terminate()
+        current_song_process = None
+        
+    if req.action == 'play' and req.filename:
+        file_path = os.path.join("/sounds/songs", req.filename)
+        if os.path.exists(file_path):
+            if file_path.endswith('.mp3'):
+                current_song_process = subprocess.Popen(["mpg123", "-q", file_path])
+            else:
+                current_song_process = subprocess.Popen(["aplay", "-q", file_path])
+                
     return {"status": "ok"}

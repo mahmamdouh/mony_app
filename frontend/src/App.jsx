@@ -54,8 +54,8 @@ function App() {
   const fileInputRef = useRef(null);
 
   const radioStations = [
-    { name: "Quran Kareem", location: "Cairo, Egypt", url: "http://n0a.radiojar.com/8s5u5tpdtwzuv" },
-    { name: "Nogoum FM 100.6", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
+    { name: "Quran Kareem Radio (Cairo)", location: "Cairo, Egypt", url: "https://n03.radiojar.com/8s5u5tpdtwzuv" },
+    { name: "Radio 9090 FM", location: "Cairo, Egypt", url: "https://9090streaming.mobtada.com/9090FMEGYPT" },
     { name: "Mega FM 92.7", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
     { name: "BBC Arabic", location: "London, UK", url: "http://stream.live.vc.bbcmedia.co.uk/bbc_arabic_radio" },
     { name: "Radio Misr 88.7", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
@@ -63,6 +63,11 @@ function App() {
     { name: "Mix FM", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
     { name: "Radio HIT", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" }
   ];
+
+  const [songs, setSongs] = useState([]);
+  const [selectedSong, setSelectedSong] = useState("");
+  const [isSongPlaying, setIsSongPlaying] = useState(false);
+  const [isSyncingMawaqit, setIsSyncingMawaqit] = useState(false);
 
   const currentRadio = radioStations[radioIndex];
 
@@ -76,9 +81,18 @@ function App() {
   useEffect(() => {
     fetchAlarms();
     fetchMusic();
+    fetchSongs();
     fetchMawaqitSettings();
     calculatePrayers();
   }, [time.getDate()]); // re-calculate prayers if day changes
+
+  const fetchSongs = async () => {
+    try {
+      const res = await axios.get("/api/songs");
+      setSongs(res.data);
+      if (res.data.length > 0) setSelectedSong(res.data[0]);
+    } catch (e) { console.error(e); }
+  };
 
   const fetchMawaqitSettings = async () => {
     try {
@@ -136,6 +150,7 @@ function App() {
 
   const formatPrayerTime = (dateObj) => {
     if (!dateObj) return "--:--";
+    if (typeof dateObj === "string") return dateObj;
     return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
@@ -180,13 +195,36 @@ function App() {
     }
   };
 
-  // Mawaqit actions
   const searchMosques = async () => {
     if (!searchQuery) return;
     try {
       const res = await axios.get(`/api/mawaqit/search?query=${searchQuery}`);
       setSearchResults(res.data.results || []);
     } catch(e) { console.error(e); }
+  };
+
+  const handleMosqueSelect = async (mosque) => {
+    setSelectedMosque(mosque);
+    setSearchResults([]);
+    setIsSyncingMawaqit(true);
+    try {
+      const res = await axios.get(`/api/mawaqit/sync?slug=${mosque.slug || mosque.uuid}`);
+      if (res.data.status === "ok" && res.data.times) {
+         // times = [fajr, shuruq, dhuhr, asr, maghrib, isha] usually, but sometimes just 5.
+         // Let's map them securely:
+         const t = res.data.times;
+         if (t.length >= 5) {
+             setPrayers({
+               Fajr: t[0],
+               Dhuhr: t[1],
+               Asr: t[2],
+               Maghrib: t[3],
+               Isha: t[4]
+             });
+         }
+      }
+    } catch(e) { console.error("Failed to sync", e); }
+    setIsSyncingMawaqit(false);
   };
 
   const saveMawaqitConfig = async () => {
@@ -215,6 +253,17 @@ function App() {
   const prevRadio = () => {
     setRadioIndex((prev) => (prev - 1 + radioStations.length) % radioStations.length);
     setIsPlaying(false);
+  };
+
+  const handleSongPlayToggle = async () => {
+    const newStatus = !isSongPlaying;
+    setIsSongPlaying(newStatus);
+    try {
+      await axios.post("/api/songs/play", {
+        filename: selectedSong,
+        action: newStatus ? "play" : "pause"
+      });
+    } catch(e) { console.error(e); }
   };
 
   // Alarm actions
@@ -375,21 +424,46 @@ function App() {
             </div>
 
             <div className="flex justify-center items-center gap-6 mt-auto">
-              <button className="p-4 bg-slate-800/80 hover:bg-slate-700 rounded-full transition-all border border-white/10 shadow-lg group relative overflow-hidden">
-                <Music className="w-5 h-5 text-purple-300 relative z-10 group-hover:scale-110 transition-transform" />
-              </button>
-              
               <button 
                 onClick={handlePlayToggle}
                 className={`p-5 rounded-full transition-all border shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] transform hover:-translate-y-1 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.7)] text-white flex items-center justify-center w-[80px] h-[80px] ${isPlaying ? 'bg-indigo-600 border-indigo-400' : 'bg-blue-600 border-blue-400'}`}>
                 {isPlaying ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current translate-x-1" />}
               </button>
+            </div>
+          </GlassPanel>
 
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="p-4 bg-slate-800/80 hover:bg-slate-700 rounded-full transition-all border border-white/10 shadow-lg group relative overflow-hidden">
-                <UploadCloud className="w-5 h-5 text-blue-300 relative z-10 group-hover:scale-110 transition-transform" />
-              </button>
+          {/* Songs Module */}
+          <GlassPanel className="flex flex-col border border-purple-500/30">
+            <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+              <Music className="w-5 h-5 text-purple-400" /> Songs Library
+            </h3>
+            <div className="flex flex-col gap-4">
+               <div>
+                 <label className="text-xs text-slate-400 mb-1 block">Select Track</label>
+                 <select 
+                   value={selectedSong}
+                   onChange={(e) => { setSelectedSong(e.target.value); setIsSongPlaying(false); }}
+                   className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm focus:border-purple-500">
+                   {songs.map(s => <option key={s} value={s}>{s}</option>)}
+                   {songs.length === 0 && <option value="">No songs found in /sounds/songs</option>}
+                 </select>
+               </div>
+               
+               <div className="flex justify-between items-center bg-black/20 p-2 rounded-2xl border border-white/5">
+                 <button 
+                  onClick={handleSongPlayToggle}
+                  disabled={!selectedSong}
+                  className={`p-3 rounded-full transition-all flex items-center justify-center ${isSongPlaying ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:text-white'}`}>
+                  {isSongPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-0.5" />}
+                 </button>
+                 {isSongPlaying && (
+                    <div className="flex gap-1 pr-4">
+                       <span className="w-1.5 h-4 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                       <span className="w-1.5 h-6 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                       <span className="w-1.5 h-3 bg-purple-300 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                    </div>
+                 )}
+               </div>
             </div>
           </GlassPanel>
         </div>
@@ -495,13 +569,18 @@ function App() {
           </div>
           
           {searchResults.length > 0 && (
-             <div className="max-h-32 overflow-y-auto bg-slate-800 border border-slate-600 rounded-xl text-left mt-2 shadow-inner">
+             <div className="max-h-32 overflow-y-auto bg-slate-800 border border-slate-600 rounded-xl text-left mt-2 shadow-inner custom-scrollbar relative">
+                {isSyncingMawaqit && (
+                   <div className="absolute inset-0 bg-slate-800/80 backdrop-blur-sm flex items-center justify-center z-10">
+                      <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                   </div>
+                )}
                 {searchResults.map(m => (
                    <div 
                      key={m.uuid} 
-                     onClick={() => { setSelectedMosque(m); setSearchResults([]); }}
+                     onClick={() => handleMosqueSelect(m)}
                      className="p-3 border-b border-slate-700 hover:bg-slate-700 cursor-pointer text-sm font-medium transition-colors text-white">
-                     {m.name}
+                     {m.name || "Unknown Mosque"}
                    </div>
                 ))}
              </div>
