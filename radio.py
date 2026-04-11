@@ -17,7 +17,8 @@ import vlc
 # "1": ("Quran Kareem Radio (Cairo)", "https://n03.radiojar.com/8s5u5tpdtwzuv"),
 #     "2": ("Radio 9090 FM", "https://9090streaming.mobtada.com/9090FMEGYPT"),
 stations = {
-"1": ("Quran Kareem Radio (Cairo)", "https://n03.radiojar.com/8s5u5tpdtwzuv"),
+"1": ("Quran Kareem Radio (Cairo)", "http://n0a.radiojar.com/8s5u5tpdtwzuv"),
+                                     
     "2": ("Radio 9090 FM", "https://9090streaming.mobtada.com/9090FMEGYPT"),
     "3": ("BBC Arabic","http://stream.live.vc.bbcmedia.co.uk/bbc_arabic_radio")
 }

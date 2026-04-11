@@ -27,6 +27,9 @@ class MawaqitSettings(BaseModel):
     maghrib_adhan: Optional[str] = None
     isha_adhan: Optional[str] = None
 
+class VolumeRequest(BaseModel):
+    level: int
+
 # Global VLC
 try:
     import vlc
@@ -227,3 +230,25 @@ def play_song(req: SongPlayRequest):
                     current_song_player = subprocess.Popen(["aplay", "-q", file_path])
                 
     return {"status": "ok"}
+
+@router.get("/volume")
+def get_system_volume():
+    try:
+        res = subprocess.run(["amixer", "sget", "PCM"], capture_output=True, text=True)
+        import re
+        match = re.search(r'\[(\d+)%\]', res.stdout)
+        if match:
+            return {"level": int(match.group(1))}
+    except:
+        pass
+    return {"level": 50}
+
+@router.post("/volume")
+def set_system_volume(req: VolumeRequest):
+    level = max(0, min(100, req.level))
+    cmd = ["amixer", "sset", "PCM", f"{level}%"]
+    try:
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {"status": "ok", "level": level}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

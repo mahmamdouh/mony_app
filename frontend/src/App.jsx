@@ -19,7 +19,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-800/50">
           <h3 className="font-bold text-lg">{title}</h3>
           <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
-            <X className="w-5 h-5"/>
+            <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-6">{children}</div>
@@ -33,23 +33,23 @@ function App() {
   const [time, setTime] = useState(new Date());
   const [isPlaying, setIsPlaying] = useState(false);
   const [radioIndex, setRadioIndex] = useState(0);
-  
+
   const [alarms, setAlarms] = useState([]);
   const [musicFiles, setMusicFiles] = useState([]);
-  
+
   const [isAlarmModalOpen, setAlarmModalOpen] = useState(false);
   const [isMosqueModalOpen, setMosqueModalOpen] = useState(false);
-  
+
   const [searchResults, setSearchResults] = useState([]);
   const [selectedMosque, setSelectedMosque] = useState(null);
-  
+
   const [adhanSettings, setAdhanSettings] = useState({
     Fajr: "", Dhuhr: "", Asr: "", Maghrib: "", Isha: ""
   });
-  
+
   const [prayers, setPrayers] = useState({});
   const [nextPrayerName, setNextPrayerName] = useState("");
-  
+
   const fileInputRef = useRef(null);
 
   const radioStations = [
@@ -68,6 +68,8 @@ function App() {
   const [isSongPlaying, setIsSongPlaying] = useState(false);
   const [isSyncingMawaqit, setIsSyncingMawaqit] = useState(false);
 
+  const [volume, setVolume] = useState(50);
+
   const currentRadio = radioStations[radioIndex];
 
   // Tick clock
@@ -82,8 +84,22 @@ function App() {
     fetchMusic();
     fetchSongs();
     fetchMawaqitSettings();
+    fetchVolume();
     calculatePrayers();
   }, [time.getDate()]); // re-calculate prayers if day changes
+
+  const fetchVolume = async () => {
+    try {
+      const res = await axios.get("/api/volume");
+      setVolume(res.data.level || 50);
+    } catch (e) { console.error(e); }
+  };
+
+  const setSystemVolume = async (val) => {
+    try {
+      await axios.post("/api/volume", { level: parseInt(val) });
+    } catch (e) { console.error(e); }
+  };
 
   const fetchSongs = async () => {
     try {
@@ -136,7 +152,7 @@ function App() {
     const coordinates = new Coordinates(30.0444, 31.2357);
     const params = CalculationMethod.Egyptian();
     const prayerTimes = new PrayerTimes(coordinates, new Date(), params);
-    
+
     setPrayers({
       Fajr: prayerTimes.fajr,
       Dhuhr: prayerTimes.dhuhr,
@@ -189,7 +205,7 @@ function App() {
         url: currentRadio.url,
         action: newStatus ? "play" : "pause"
       });
-    } catch(e) {
+    } catch (e) {
       console.error("Radio stream failed", e);
     }
   };
@@ -200,7 +216,7 @@ function App() {
     try {
       const res = await axios.get(`/api/mawaqit/scan`);
       setSearchResults(res.data.results || []);
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
     setIsSyncingMawaqit(false);
   };
 
@@ -211,39 +227,39 @@ function App() {
     try {
       const res = await axios.get(`/api/mawaqit/sync?slug=${mosque.slug || mosque.uuid}`);
       if (res.data.status === "ok" && res.data.times) {
-         // times = [fajr, shuruq, dhuhr, asr, maghrib, isha] usually, but sometimes just 5.
-         // Let's map them securely:
-         const t = res.data.times;
-         if (t.length >= 5) {
-             setPrayers({
-               Fajr: t[0],
-               Dhuhr: t[1],
-               Asr: t[2],
-               Maghrib: t[3],
-               Isha: t[4]
-             });
-         }
+        // times = [fajr, shuruq, dhuhr, asr, maghrib, isha] usually, but sometimes just 5.
+        // Let's map them securely:
+        const t = res.data.times;
+        if (t.length >= 5) {
+          setPrayers({
+            Fajr: t[0],
+            Dhuhr: t[1],
+            Asr: t[2],
+            Maghrib: t[3],
+            Isha: t[4]
+          });
+        }
       }
-    } catch(e) { console.error("Failed to sync", e); }
+    } catch (e) { console.error("Failed to sync", e); }
     setIsSyncingMawaqit(false);
   };
 
   const saveMawaqitConfig = async () => {
     try {
-        await axios.post("/api/mawaqit/settings", {
-            mosque_uuid: selectedMosque?.uuid || "",
-            mosque_name: selectedMosque?.name || "",
-            fajr_adhan: adhanSettings.Fajr,
-            dhuhr_adhan: adhanSettings.Dhuhr,
-            asr_adhan: adhanSettings.Asr,
-            maghrib_adhan: adhanSettings.Maghrib,
-            isha_adhan: adhanSettings.Isha
-        });
-        alert("Configuration saved!");
-        setMosqueModalOpen(false);
+      await axios.post("/api/mawaqit/settings", {
+        mosque_uuid: selectedMosque?.uuid || "",
+        mosque_name: selectedMosque?.name || "",
+        fajr_adhan: adhanSettings.Fajr,
+        dhuhr_adhan: adhanSettings.Dhuhr,
+        asr_adhan: adhanSettings.Asr,
+        maghrib_adhan: adhanSettings.Maghrib,
+        isha_adhan: adhanSettings.Isha
+      });
+      alert("Configuration saved!");
+      setMosqueModalOpen(false);
     } catch (e) {
-        console.error(e);
-        alert("Failed to save configuration.");
+      console.error(e);
+      alert("Failed to save configuration.");
     }
   };
 
@@ -264,7 +280,7 @@ function App() {
         filename: selectedSong,
         action: newStatus ? "play" : "pause"
       });
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
   };
 
   // Alarm actions
@@ -272,14 +288,14 @@ function App() {
     try {
       await axios.patch(`/api/alarms/${id}/toggle`);
       fetchAlarms();
-    } catch (e) {}
+    } catch (e) { }
   };
-  
+
   const deleteAlarm = async (id) => {
     try {
       await axios.delete(`/api/alarms/${id}`);
       fetchAlarms();
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const submitAlarm = async (e) => {
@@ -295,17 +311,17 @@ function App() {
       });
       setAlarmModalOpen(false);
       fetchAlarms();
-    } catch (err) {}
+    } catch (err) { }
   };
 
   return (
-    <div className="min-h-screen text-slate-100 p-4 md:p-8 flex flex-col font-sans relative overflow-hidden" 
-         style={{ background: 'linear-gradient(135deg, #0f172a 0%, #171717 100%)' }}>
-      
+    <div className="min-h-screen text-slate-100 p-4 md:p-8 flex flex-col font-sans relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #0f172a 0%, #171717 100%)' }}>
+
       {/* Dynamic Backgrounds */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/30 blur-[150px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/20 blur-[150px] pointer-events-none"></div>
-      
+
       {/* Header */}
       <header className="flex justify-between items-center mb-8 relative z-10 w-full max-w-6xl mx-auto">
         <div className="flex items-center gap-4">
@@ -319,8 +335,22 @@ function App() {
             <p className="text-sm text-slate-400">Smart Assistant & Media Hub</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-xl shadow-inner">
+            <Volume2 className="w-4 h-4 text-slate-300" />
+            <input
+              type="range"
+              min="0" max="100"
+              value={volume}
+              onChange={(e) => setVolume(e.target.value)}
+              onMouseUp={(e) => setSystemVolume(e.target.value)}
+              onTouchEnd={(e) => setSystemVolume(e.target.value)}
+              className="w-24 accent-purple-500 cursor-pointer"
+            />
+            <span className="text-xs font-bold text-slate-400 w-6 text-right">{volume}%</span>
+          </div>
+
           <button onClick={testSpeaker} className="flex items-center bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 rounded-xl text-sm border border-white/10 shadow hover:shadow-lg">
             <Volume2 className="w-4 h-4 mr-2" /> Test Speaker
           </button>
@@ -333,12 +363,12 @@ function App() {
 
       {/* Main Grid */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 w-full max-w-6xl mx-auto">
-        
+
         {/* Left Col: Clock & Alarms */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           <GlassPanel className="flex flex-col items-center justify-center py-10 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-50">
-              {time.getHours() >= 6 && time.getHours() < 18 ? <Sun className="w-8 h-8 text-yellow-400"/> : <Moon className="w-8 h-8 text-blue-300"/>}
+              {time.getHours() >= 6 && time.getHours() < 18 ? <Sun className="w-8 h-8 text-yellow-400" /> : <Moon className="w-8 h-8 text-blue-300" />}
             </div>
             <h2 className="text-6xl font-black tracking-tighter mb-2" suppressHydrationWarning>
               {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
@@ -353,13 +383,13 @@ function App() {
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <Bell className="w-5 h-5 text-purple-400" /> Alarms
               </h3>
-              <button 
+              <button
                 onClick={() => setAlarmModalOpen(true)}
                 className="text-sm bg-purple-500/20 hover:bg-purple-500/40 px-3 py-1 rounded-full text-purple-300 transition-colors shadow">
                 + Add
               </button>
             </div>
-            
+
             <div className="space-y-4 overflow-y-auto max-h-[300px] flex-grow">
               {alarms.length === 0 && <p className="text-center text-slate-500 mt-4 text-sm font-medium">No alarms active</p>}
               {alarms.map(alarm => (
@@ -389,7 +419,7 @@ function App() {
             <h3 className="text-xl font-bold flex items-center gap-2 mb-6">
               <Radio className="w-5 h-5 text-blue-400" /> Web Radio
             </h3>
-            
+
             <div className="flex-grow flex flex-col items-center justify-center">
               <div className="aspect-square w-full max-w-[200px] mx-auto bg-gradient-to-br from-indigo-900 to-purple-900 rounded-[2.5rem] mb-8 flex items-center justify-center relative overflow-hidden group shadow-[inset_0_-2px_4px_rgba(0,0,0,0.6),0_10px_20px_rgba(0,0,0,0.5)]">
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
@@ -410,22 +440,22 @@ function App() {
 
               <div className="w-full">
                 <div className="flex items-center justify-between mb-8 px-2 bg-black/20 p-2 rounded-2xl border border-white/5 shadow-inner">
-                   <button onClick={prevRadio} className="p-2 bg-white/5 rounded-full hover:bg-white/20 transition-all text-white/70 hover:text-white">
-                     <svg className="w-5 h-5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
-                   </button>
-                   <div className="text-center mx-2 flex-grow min-w-0">
-                     <h4 className="text-xl font-bold truncate tracking-wide text-white drop-shadow-md">{currentRadio.name}</h4>
-                     <p className="text-blue-300 text-xs mt-1 truncate uppercase tracking-widest font-bold">{currentRadio.location}</p>
-                   </div>
-                   <button onClick={nextRadio} className="p-2 bg-white/5 rounded-full hover:bg-white/20 transition-all text-white/70 hover:text-white">
-                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
-                   </button>
+                  <button onClick={prevRadio} className="p-2 bg-white/5 rounded-full hover:bg-white/20 transition-all text-white/70 hover:text-white">
+                    <svg className="w-5 h-5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                  <div className="text-center mx-2 flex-grow min-w-0">
+                    <h4 className="text-xl font-bold truncate tracking-wide text-white drop-shadow-md">{currentRadio.name}</h4>
+                    <p className="text-blue-300 text-xs mt-1 truncate uppercase tracking-widest font-bold">{currentRadio.location}</p>
+                  </div>
+                  <button onClick={nextRadio} className="p-2 bg-white/5 rounded-full hover:bg-white/20 transition-all text-white/70 hover:text-white">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                  </button>
                 </div>
               </div>
             </div>
 
             <div className="flex justify-center items-center gap-6 mt-auto">
-              <button 
+              <button
                 onClick={handlePlayToggle}
                 className={`p-5 rounded-full transition-all border shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] transform hover:-translate-y-1 hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.7)] text-white flex items-center justify-center w-[80px] h-[80px] ${isPlaying ? 'bg-indigo-600 border-indigo-400' : 'bg-blue-600 border-blue-400'}`}>
                 {isPlaying ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current translate-x-1" />}
@@ -439,48 +469,48 @@ function App() {
               <Music className="w-5 h-5 text-purple-400" /> Songs Library
             </h3>
             <div className="flex flex-col gap-4">
-               <div>
-                 <label className="text-xs text-slate-400 mb-1 block">Select Track</label>
-                 <select 
-                   value={selectedSong}
-                   onChange={(e) => { setSelectedSong(e.target.value); setIsSongPlaying(false); }}
-                   className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm focus:border-purple-500">
-                   {songs.map(s => <option key={s} value={s}>{s}</option>)}
-                   {songs.length === 0 && <option value="">No songs found in /sounds/songs</option>}
-                 </select>
-               </div>
-               
-               <div className="flex justify-between items-center bg-black/20 p-2 rounded-2xl border border-white/5">
-                 <button 
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Select Track</label>
+                <select
+                  value={selectedSong}
+                  onChange={(e) => { setSelectedSong(e.target.value); setIsSongPlaying(false); }}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm focus:border-purple-500">
+                  {songs.map(s => <option key={s} value={s}>{s}</option>)}
+                  {songs.length === 0 && <option value="">No songs found in /sounds/songs</option>}
+                </select>
+              </div>
+
+              <div className="flex justify-between items-center bg-black/20 p-2 rounded-2xl border border-white/5">
+                <button
                   onClick={handleSongPlayToggle}
                   disabled={!selectedSong}
                   className={`p-3 rounded-full transition-all flex items-center justify-center ${isSongPlaying ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:text-white'}`}>
                   {isSongPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-0.5" />}
-                 </button>
-                 {isSongPlaying && (
-                    <div className="flex gap-1 pr-4">
-                       <span className="w-1.5 h-4 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
-                       <span className="w-1.5 h-6 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
-                       <span className="w-1.5 h-3 bg-purple-300 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
-                    </div>
-                 )}
-               </div>
+                </button>
+                {isSongPlaying && (
+                  <div className="flex gap-1 pr-4">
+                    <span className="w-1.5 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-1.5 h-6 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-1.5 h-3 bg-purple-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                )}
+              </div>
             </div>
           </GlassPanel>
         </div>
 
         {/* Right Col: Mawaqit & Upload */}
         <div className="lg:col-span-4 flex flex-col gap-6">
-          
+
           <GlassPanel className="relative overflow-hidden group">
             <div className="absolute right-[-20px] top-[-20px] opacity-10 rotate-12 pointer-events-none">
-               <svg width="150" height="150" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22h20L12 2z"/></svg>
+              <svg width="150" height="150" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22h20L12 2z" /></svg>
             </div>
-            
+
             <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
               <MapPin className="w-5 h-5 text-emerald-400" /> Islamic Assistant
             </h3>
-            
+
             <div className="bg-black/30 rounded-2xl p-5 border border-emerald-500/20 mb-5 shadow-inner">
               <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Next Prayer
@@ -502,15 +532,15 @@ function App() {
                 </div>
               ))}
             </div>
-            
+
             <button onClick={() => setMosqueModalOpen(true)} className="w-full mt-5 py-3 bg-white/5 hover:bg-white/10 hover:shadow-md rounded-xl transition-all border border-white/10 text-sm font-semibold flex items-center justify-center gap-2 text-slate-300 hover:text-white">
-              <Settings className="w-4 h-4"/> Configure Adhan
+              <Settings className="w-4 h-4" /> Configure Adhan
             </button>
           </GlassPanel>
 
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".mp3,.wav" />
-          
-          <GlassPanel 
+
+          <GlassPanel
             onClick={() => fileInputRef.current?.click()}
             className="flex-grow flex flex-col justify-center items-center text-center p-6 border-dashed border-2 border-white/20 hover:border-blue-400/50 hover:bg-blue-500/5 transition-all cursor-pointer group shadow-sm hover:shadow-lg">
             <div className="p-4 bg-blue-500/10 rounded-full mb-4 group-hover:bg-blue-500/20 group-hover:scale-110 transition-all border border-blue-500/20 shadow-inner">
@@ -530,14 +560,14 @@ function App() {
         <form onSubmit={submitAlarm} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-300">Time</label>
-            <input name="time" type="time" defaultValue="07:00" className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors" required/>
+            <input name="time" type="time" defaultValue="07:00" className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors" required />
           </div>
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-300">Label (TTS Pronouncement)</label>
-            <input name="label" type="text" placeholder="e.g. Morning Workout" className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors" required/>
+            <input name="label" type="text" placeholder="e.g. Morning Workout" className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors" required />
           </div>
           <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-300 flex items-center gap-2"><Music className="w-4 h-4"/> Local Sound File</label>
+            <label className="block text-sm font-semibold mb-2 text-slate-300 flex items-center gap-2"><Music className="w-4 h-4" /> Local Sound File</label>
             <select name="sound_file" className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors">
               <option value="">(None - Use TTS only)</option>
               {musicFiles.map(f => (
@@ -546,7 +576,7 @@ function App() {
             </select>
           </div>
           <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-purple-600/30 flex justify-center items-center gap-2 mt-6">
-            <Plus className="w-5 h-5"/> Save Alarm
+            <Plus className="w-5 h-5" /> Save Alarm
           </button>
         </form>
       </Modal>
@@ -559,51 +589,51 @@ function App() {
           <p className="text-sm text-slate-400">Search for a mosque to sync with Mawaqit, or set local Adhan tracks.</p>
 
           <div className="flex justify-center mt-4">
-            <button 
-              onClick={scanNearestMosques} 
+            <button
+              onClick={scanNearestMosques}
               disabled={isSyncingMawaqit}
               className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-3 rounded-xl text-sm font-bold border border-emerald-500 transition-colors shadow-md">
               {isSyncingMawaqit ? "Scanning Local Area..." : "Scan Nearest Mosques"}
             </button>
           </div>
-          
+
           {searchResults.length > 0 && (
-             <div className="max-h-32 overflow-y-auto bg-slate-800 border border-slate-600 rounded-xl text-left mt-2 shadow-inner custom-scrollbar relative">
-                {isSyncingMawaqit && (
-                   <div className="absolute inset-0 bg-slate-800/80 backdrop-blur-sm flex items-center justify-center z-10">
-                      <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                   </div>
-                )}
-                {searchResults.map(m => (
-                   <div 
-                     key={m.uuid} 
-                     onClick={() => handleMosqueSelect(m)}
-                     className="p-3 border-b border-slate-700 hover:bg-slate-700 cursor-pointer text-sm font-medium transition-colors text-white">
-                     {m.name || "Unknown Mosque"}
-                   </div>
-                ))}
-             </div>
+            <div className="max-h-32 overflow-y-auto bg-slate-800 border border-slate-600 rounded-xl text-left mt-2 shadow-inner custom-scrollbar relative">
+              {isSyncingMawaqit && (
+                <div className="absolute inset-0 bg-slate-800/80 backdrop-blur-sm flex items-center justify-center z-10">
+                  <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              {searchResults.map(m => (
+                <div
+                  key={m.uuid}
+                  onClick={() => handleMosqueSelect(m)}
+                  className="p-3 border-b border-slate-700 hover:bg-slate-700 cursor-pointer text-sm font-medium transition-colors text-white">
+                  {m.name || "Unknown Mosque"}
+                </div>
+              ))}
+            </div>
           )}
-          
+
           {selectedMosque && (
-             <div className="text-sm text-emerald-400 font-bold mt-2 p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-               Synced with: {selectedMosque.name}
-             </div>
+            <div className="text-sm text-emerald-400 font-bold mt-2 p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+              Synced with: {selectedMosque.name}
+            </div>
           )}
 
           <div className="space-y-3 mt-4 text-left max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-             {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(prayer => (
-                 <div key={prayer}>
-                     <label className="block text-sm font-bold text-slate-300 mt-2">{prayer} Adhan Track</label>
-                     <select 
-                        value={adhanSettings[prayer]}
-                        onChange={(e) => setAdhanSettings({...adhanSettings, [prayer]: e.target.value})}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm">
-                        <option value="">Default Backend Adhan</option>
-                        {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
-                     </select>
-                 </div>
-             ))}
+            {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(prayer => (
+              <div key={prayer}>
+                <label className="block text-sm font-bold text-slate-300 mt-2">{prayer} Adhan Track</label>
+                <select
+                  value={adhanSettings[prayer]}
+                  onChange={(e) => setAdhanSettings({ ...adhanSettings, [prayer]: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm">
+                  <option value="">Default Backend Adhan</option>
+                  {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </div>
+            ))}
           </div>
 
           <button onClick={saveMawaqitConfig} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-emerald-600/30 mt-6">
