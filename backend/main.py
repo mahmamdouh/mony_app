@@ -10,6 +10,17 @@ try:
 except ImportError:
     pass
 
+try:
+    import vlc
+    vlc_instance = vlc.Instance('--no-video', '--quiet')
+except Exception as e:
+    print(f"Warning: Could not initialize VLC. {e}")
+    vlc_instance = None
+
+def get_vlc_player():
+    if not vlc_instance: return None
+    return vlc_instance.media_player_new()
+
 # Initialize Docker client
 try:
     docker_client = docker.from_env()
@@ -70,12 +81,21 @@ async def play_tts(text: str, cache_name: str = None):
             
     # Play the file
     print(f"Playing TTS: {file_path}")
-    if file_path.endswith('.mp3'):
-        play_proc = await asyncio.create_subprocess_exec("mpg123", "-q", file_path)
+    player = get_vlc_player()
+    if player:
+        media = vlc_instance.media_new(file_path)
+        player.set_media(media)
+        player.play()
+        await asyncio.sleep(0.5)
+        while player.get_state() == vlc.State.Playing:
+            await asyncio.sleep(0.5)
     else:
-        play_proc = await asyncio.create_subprocess_exec("aplay", "-q", file_path)
-        
-    await play_proc.communicate()
+        # Fallback if VLC doesn't exist
+        if file_path.endswith('.mp3'):
+            play_proc = await asyncio.create_subprocess_exec("mpg123", "-q", file_path)
+        else:
+            play_proc = await asyncio.create_subprocess_exec("aplay", "-q", file_path)
+        await play_proc.communicate()
     
     # Resume audio
     resume_audio_engine()
@@ -94,11 +114,20 @@ async def play_intro_sound():
         if files:
             file_path = os.path.join(intro_dir, files[0])
             print(f"Playing intro sound: {file_path}")
-            if file_path.endswith('.mp3'):
-                play_proc = await asyncio.create_subprocess_exec("mpg123", "-q", file_path)
+            player = get_vlc_player()
+            if player:
+                media = vlc_instance.media_new(file_path)
+                player.set_media(media)
+                player.play()
+                await asyncio.sleep(0.5)
+                while player.get_state() == vlc.State.Playing:
+                    await asyncio.sleep(0.5)
             else:
-                play_proc = await asyncio.create_subprocess_exec("aplay", "-q", file_path)
-            await play_proc.communicate()
+                if file_path.endswith('.mp3'):
+                    play_proc = await asyncio.create_subprocess_exec("mpg123", "-q", file_path)
+                else:
+                    play_proc = await asyncio.create_subprocess_exec("aplay", "-q", file_path)
+                await play_proc.communicate()
             played = True
     
     if not played:

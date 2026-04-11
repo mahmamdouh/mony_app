@@ -27,8 +27,15 @@ class MawaqitSettings(BaseModel):
     maghrib_adhan: Optional[str] = None
     isha_adhan: Optional[str] = None
 
-# Global variable to hold running radio process
-current_radio_process = None
+# Global VLC
+try:
+    import vlc
+    vlc_instance = vlc.Instance('--no-video', '--quiet')
+except Exception as e:
+    print(f"Warning: Could not initialize VLC in routes. {e}")
+    vlc_instance = None
+
+current_radio_player = None
 
 @router.get("/alarms")
 def get_alarms():
@@ -84,50 +91,72 @@ def list_music():
 
 @router.post("/radio")
 def radio_control(req: RadioRequest):
-    global current_radio_process
+    global current_radio_player
     
-    # Always kill previous process if running
-    if current_radio_process is not None:
-        current_radio_process.terminate()
-        current_radio_process = None
+    if current_radio_player is not None:
+        if hasattr(current_radio_player, 'stop'):
+            current_radio_player.stop()
+        else:
+            current_radio_player.terminate()
+        current_radio_player = None
         
     if req.action == 'play' and req.url:
         print(f"Starting radio stream: {req.url}")
-        # Use mpg123 to stream web radio
-        current_radio_process = subprocess.Popen(["mpg123", "-q", req.url])
+        if vlc_instance:
+            current_radio_player = vlc_instance.media_player_new()
+            media = vlc_instance.media_new(req.url)
+            current_radio_player.set_media(media)
+            current_radio_player.play()
+        else:
+            current_radio_player = subprocess.Popen(["mpg123", "-q", req.url])
         
     return {"status": "ok"}
 
-@router.get("/mawaqit/search")
-def search_mosque(query: str):
+@router.get("/mawaqit/scan")
+async def scan_nearest_mosques():
     import requests
+    from mawaqit import AsyncMawaqitClient
     try:
-        geo_req = requests.get(f'https://nominatim.openstreetmap.org/search?q={query}&format=json', headers={'User-Agent': 'Mony/1.0'}, timeout=10)
-        geo_data = geo_req.json()
-        if not geo_data:
-            return {"results": []}
-        lat = geo_data[0]['lat']
-        lon = geo_data[0]['lon']
-        # Hit Mawaqit
-        mq_req = requests.get(f'https://mawaqit.net/api/2.0/mosque/search?lat={lat}&lon={lon}', timeout=10)
-        return {"results": mq_req.json()}
+        ip_req = requests.get('http://ip-api.com/json/', timeout=5)
+        ip_data = ip_req.json()
+        lat = ip_data.get('lat', 30.0444)
+        lon = ip_data.get('lon', 31.2357)
+    except:
+        lat = 30.0444
+        lon = 31.2357
+        
+    try:
+        EMAIL = "mahmoud.elmohtady@gmail.com"
+        PASSWORD = "Mahmoud=2020"
+        async with AsyncMawaqitClient(username=EMAIL, password=PASSWORD, latitude=lat, longitude=lon) as client:
+            await client.login()
+            mosques = await client.all_mosques_neighborhood()
+            return {"results": mosques}
     except Exception as e:
-        print("Geocoding/Mawaqit search error:", e)
+        print("Mawaqit scan error:", e)
         return {"results": []}
 
 @router.get("/mawaqit/sync")
-def sync_mawaqit_mosque(slug: str):
-    import requests
-    import re
-    import json
+async def sync_mawaqit_mosque(slug: str):
+    from mawaqit import AsyncMawaqitClient
     try:
-        r = requests.get(f'https://mawaqit.net/en/{slug}', headers={'User-Agent': 'Mozilla/5.0 Mony/1.0'}, timeout=10)
-        times = re.search(r'let confData = (\{.*?\});', r.text)
-        if times:
-            data = json.loads(times.group(1))
-            return {"status": "ok", "calendar": data.get("calendar", []), "times": data.get("times", [])}
-        else:
-            return {"status": "error", "message": "Could not parse times from mosque page."}
+        EMAIL = "mahmoud.elmohtady@gmail.com"
+        PASSWORD = "Mahmoud=2020"
+        async with AsyncMawaqitClient(username=EMAIL, password=PASSWORD) as client:
+            await client.login()
+            
+            mosques = await client.fetch_mosques_by_keyword(slug)
+            if not mosques:
+                 return {"status": "error", "message": "Mosque not found"}
+            
+            mosque_data = mosques[0]
+            times = mosque_data.get('times')
+            
+            if not times:
+                client.mosque = mosque_data['uuid']
+                times = await client.fetch_prayer_times()
+                
+            return {"status": "ok", "calendar": [], "times": times}
     except Exception as e:
         print("Sync error:", e)
         return {"status": "error", "message": str(e)}
@@ -170,22 +199,31 @@ class SongPlayRequest(BaseModel):
     filename: str
     action: str
 
-current_song_process = None
+current_song_player = None
 
 @router.post("/songs/play")
 def play_song(req: SongPlayRequest):
-    global current_song_process
+    global current_song_player
     
-    if current_song_process is not None:
-        current_song_process.terminate()
-        current_song_process = None
+    if current_song_player is not None:
+        if hasattr(current_song_player, 'stop'):
+            current_song_player.stop()
+        else:
+            current_song_player.terminate()
+        current_song_player = None
         
     if req.action == 'play' and req.filename:
         file_path = os.path.join("/sounds/songs", req.filename)
         if os.path.exists(file_path):
-            if file_path.endswith('.mp3'):
-                current_song_process = subprocess.Popen(["mpg123", "-q", file_path])
+            if vlc_instance:
+                current_song_player = vlc_instance.media_player_new()
+                media = vlc_instance.media_new(file_path)
+                current_song_player.set_media(media)
+                current_song_player.play()
             else:
-                current_song_process = subprocess.Popen(["aplay", "-q", file_path])
+                if file_path.endswith('.mp3'):
+                    current_song_player = subprocess.Popen(["mpg123", "-q", file_path])
+                else:
+                    current_song_player = subprocess.Popen(["aplay", "-q", file_path])
                 
     return {"status": "ok"}

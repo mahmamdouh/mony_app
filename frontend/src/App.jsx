@@ -40,7 +40,6 @@ function App() {
   const [isAlarmModalOpen, setAlarmModalOpen] = useState(false);
   const [isMosqueModalOpen, setMosqueModalOpen] = useState(false);
   
-  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [selectedMosque, setSelectedMosque] = useState(null);
   
@@ -195,12 +194,14 @@ function App() {
     }
   };
 
-  const searchMosques = async () => {
-    if (!searchQuery) return;
+  const scanNearestMosques = async () => {
+    setIsSyncingMawaqit(true);
+    setSearchResults([]);
     try {
-      const res = await axios.get(`/api/mawaqit/search?query=${searchQuery}`);
+      const res = await axios.get(`/api/mawaqit/scan`);
       setSearchResults(res.data.results || []);
     } catch(e) { console.error(e); }
+    setIsSyncingMawaqit(false);
   };
 
   const handleMosqueSelect = async (mosque) => {
@@ -557,15 +558,13 @@ function App() {
           <h4 className="text-xl font-bold">Prayer Synchronization</h4>
           <p className="text-sm text-slate-400">Search for a mosque to sync with Mawaqit, or set local Adhan tracks.</p>
 
-          <div className="flex gap-2 mt-2">
-            <input 
-              type="text" 
-              placeholder="Search Mosque Name..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-grow bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-            />
-            <button onClick={searchMosques} className="bg-emerald-600 px-4 py-2 rounded-xl text-sm font-bold border border-emerald-500">Search</button>
+          <div className="flex justify-center mt-4">
+            <button 
+              onClick={scanNearestMosques} 
+              disabled={isSyncingMawaqit}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-3 rounded-xl text-sm font-bold border border-emerald-500 transition-colors shadow-md">
+              {isSyncingMawaqit ? "Scanning Local Area..." : "Scan Nearest Mosques"}
+            </button>
           </div>
           
           {searchResults.length > 0 && (
