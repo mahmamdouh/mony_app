@@ -7,4 +7,3 @@ requests
 python-multipart
 # mawaqit is the Mawaqit API Python Wrapper
 mawaqit
-python-vlc

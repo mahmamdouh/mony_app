@@ -27,18 +27,9 @@ class MawaqitSettings(BaseModel):
     maghrib_adhan: Optional[str] = None
     isha_adhan: Optional[str] = None
 
-class VolumeRequest(BaseModel):
-    level: int
-
-# Global VLC
-try:
-    import vlc
-    vlc_instance = vlc.Instance('--no-video', '--quiet')
-except Exception as e:
-    print(f"Warning: Could not initialize VLC in routes. {e}")
-    vlc_instance = None
-
-current_radio_player = None
+# Global process handles for radio and songs
+current_radio_process = None
+current_song_process = None
 
 @router.get("/alarms")
 def get_alarms():
@@ -92,27 +83,33 @@ def list_music():
                     files.append(f"{os.path.basename(d)}/{f}" if d != "/data/music" else f)
     return files
 
+class VolumeRequest(BaseModel):
+    level: int
+
 @router.post("/radio")
 def radio_control(req: RadioRequest):
-    global current_radio_player
-    
-    if current_radio_player is not None:
-        if hasattr(current_radio_player, 'stop'):
-            current_radio_player.stop()
-        else:
-            current_radio_player.terminate()
-        current_radio_player = None
-        
+    global current_radio_process
+
+    # Stop previous stream
+    if current_radio_process is not None:
+        try:
+            current_radio_process.terminate()
+            current_radio_process.wait(timeout=2)
+        except Exception:
+            pass
+        current_radio_process = None
+
     if req.action == 'play' and req.url:
-        print(f"Starting radio stream: {req.url}")
-        if vlc_instance:
-            current_radio_player = vlc_instance.media_player_new()
-            media = vlc_instance.media_new(req.url)
-            current_radio_player.set_media(media)
-            current_radio_player.play()
-        else:
-            current_radio_player = subprocess.Popen(["mpg123", "-q", req.url])
-        
+        print(f"Starting radio stream via ffmpeg: {req.url}")
+        # ffmpeg handles HTTP/HTTPS streams and works as root, mpg123 does not
+        current_radio_process = subprocess.Popen(
+            ["ffmpeg", "-re", "-loglevel", "quiet",
+             "-i", req.url,
+             "-vn", "-f", "alsa", "hw:1,0", "-y"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
     return {"status": "ok"}
 
 @router.get("/mawaqit/scan")
@@ -202,32 +199,54 @@ class SongPlayRequest(BaseModel):
     filename: str
     action: str
 
-current_song_player = None
+current_song_process = None
 
 @router.post("/songs/play")
 def play_song(req: SongPlayRequest):
-    global current_song_player
-    
-    if current_song_player is not None:
-        if hasattr(current_song_player, 'stop'):
-            current_song_player.stop()
-        else:
-            current_song_player.terminate()
-        current_song_player = None
-        
+    global current_song_process
+
+    if current_song_process is not None:
+        try:
+            current_song_process.terminate()
+            current_song_process.wait(timeout=2)
+        except Exception:
+            pass
+        current_song_process = None
+
     if req.action == 'play' and req.filename:
-        file_path = os.path.join("/sounds/songs", req.filename)
-        if os.path.exists(file_path):
-            if vlc_instance:
-                current_song_player = vlc_instance.media_player_new()
-                media = vlc_instance.media_new(file_path)
-                current_song_player.set_media(media)
-                current_song_player.play()
+        dir_map = {
+            "Azan": "/sounds/Azan",
+            "intro": "/sounds/intro",
+            "songs": "/sounds/songs"
+        }
+
+        file_path = None
+        if "/" in req.filename:
+            folder, fname = req.filename.split("/", 1)
+            if folder in dir_map:
+                file_path = os.path.join(dir_map[folder], fname)
+        else:
+            file_path = os.path.join("/data/music", req.filename)
+
+        if not file_path or not os.path.exists(file_path):
+            file_path = os.path.join("/sounds/songs", req.filename)
+
+        if file_path and os.path.exists(file_path):
+            print(f"Playing track: {file_path}")
+            if file_path.endswith('.mp3'):
+                current_song_process = subprocess.Popen(
+                    ["mpg123", "-o", "alsa", "-a", "hw:1,0", "-q", file_path],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
             else:
-                if file_path.endswith('.mp3'):
-                    current_song_player = subprocess.Popen(["mpg123", "-q", file_path])
-                else:
-                    current_song_player = subprocess.Popen(["aplay", "-q", file_path])
+                current_song_process = subprocess.Popen(
+                    ["aplay", "-D", "default", "-q", file_path],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+        else:
+            print(f"File not found: {req.filename}")
+
+    return {"status": "ok"}
                 
     return {"status": "ok"}
 

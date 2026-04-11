@@ -8,6 +8,7 @@ services:
     volumes:
       - ./data:/data
       - ./sounds:/sounds:ro
+      - ./asound.conf:/etc/asound.conf:ro
       - /var/run/docker.sock:/var/run/docker.sock
     devices:
       - /dev/snd:/dev/snd

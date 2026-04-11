@@ -1,5 +1,6 @@
 import os
 import asyncio
+import subprocess
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,17 +10,6 @@ try:
     from routes import router
 except ImportError:
     pass
-
-try:
-    import vlc
-    vlc_instance = vlc.Instance('--no-video', '--quiet')
-except Exception as e:
-    print(f"Warning: Could not initialize VLC. {e}")
-    vlc_instance = None
-
-def get_vlc_player():
-    if not vlc_instance: return None
-    return vlc_instance.media_player_new()
 
 # Initialize Docker client
 try:
@@ -51,9 +41,32 @@ def resume_audio_engine():
     except Exception as e:
         print(f"Error resuming audio engine: {e}")
 
+# mpg123: local files only (-o alsa -a hw:1,0 works for files)
+MPG123 = ["mpg123", "-o", "alsa", "-a", "hw:1,0", "-q"]
+
+# ffmpeg: for both local files and network streams (handles HTTPS, works as root)
+# -re = read at native framerate, -vn = no video, -f alsa = ALSA output, -loglevel quiet
+FFMPEG_ALSA = ["ffmpeg", "-re", "-loglevel", "quiet", "-i"]
+FFMPEG_ALSA_OUT = ["-vn", "-f", "alsa", "hw:1,0", "-y"]
+
+async def play_file(file_path: str):
+    """Play a local audio file using mpg123 (mp3) or aplay (wav). Forced ALSA."""
+    if file_path.endswith('.mp3'):
+        proc = await asyncio.create_subprocess_exec(
+            *MPG123, file_path,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+    else:
+        proc = await asyncio.create_subprocess_exec(
+            "aplay", "-D", "hw:1,0", "-q", file_path,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+    await proc.communicate()
+
 # TTS Helper
 async def play_tts(text: str, cache_name: str = None):
-    # Pause other audio first
     pause_audio_engine()
     
     cache_dir = "/data/cache"
@@ -61,7 +74,6 @@ async def play_tts(text: str, cache_name: str = None):
     
     file_path = f"{cache_dir}/{cache_name}.mp3" if cache_name else f"{cache_dir}/temp_tts.mp3"
     
-    # If not cached or no cache name, generate it
     if not cache_name or not os.path.exists(file_path):
         print(f"Generating TTS for: {text}")
         process = await asyncio.create_subprocess_exec(
@@ -70,7 +82,7 @@ async def play_tts(text: str, cache_name: str = None):
         )
         await process.communicate()
         
-        # Fallback to espeak if edge-tts fails (e.g. no internet)
+        # Fallback to espeak if edge-tts fails (no internet)
         if process.returncode != 0:
             print("edge-tts failed, falling back to espeak-ng")
             file_path = f"{cache_dir}/temp_tts.wav"
@@ -78,32 +90,10 @@ async def play_tts(text: str, cache_name: str = None):
                 "espeak-ng", "-w", file_path, text
             )
             await proc.communicate()
-            
-    # Play the file
-    print(f"Playing TTS: {file_path}")
-    player = get_vlc_player()
-    if player:
-        media = vlc_instance.media_new(file_path)
-        player.set_media(media)
-        player.play()
-        await asyncio.sleep(0.5)
-        while player.get_state() == vlc.State.Playing:
-            await asyncio.sleep(0.5)
-    else:
-        # Fallback if VLC doesn't exist
-        if file_path.endswith('.mp3'):
-            play_proc = await asyncio.create_subprocess_exec("mpg123", "-q", file_path)
-        else:
-            play_proc = await asyncio.create_subprocess_exec("aplay", "-q", file_path)
-        await play_proc.communicate()
     
-    # Resume audio
+    print(f"Playing TTS: {file_path}")
+    await play_file(file_path)
     resume_audio_engine()
-
-# Play a chime
-async def play_chime():
-    # In a real app we'd have a chime.mp3. For now, beep using espeak or just skip.
-    pass
 
 async def play_intro_sound():
     pause_audio_engine()
@@ -114,42 +104,20 @@ async def play_intro_sound():
         if files:
             file_path = os.path.join(intro_dir, files[0])
             print(f"Playing intro sound: {file_path}")
-            player = get_vlc_player()
-            if player:
-                media = vlc_instance.media_new(file_path)
-                player.set_media(media)
-                player.play()
-                await asyncio.sleep(0.5)
-                while player.get_state() == vlc.State.Playing:
-                    await asyncio.sleep(0.5)
-            else:
-                if file_path.endswith('.mp3'):
-                    play_proc = await asyncio.create_subprocess_exec("mpg123", "-q", file_path)
-                else:
-                    play_proc = await asyncio.create_subprocess_exec("aplay", "-q", file_path)
-                await play_proc.communicate()
+            await play_file(file_path)
             played = True
     
     if not played:
-        # Fallback to TTS if no sounds in intro folder
         await play_tts("Test successful! Mony systems are online.", "test_speaker")
     else:
         resume_audio_engine()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup Boot Sequence
     print("Mony Backend Starting up...")
-    
-    # Just a small delay to ensure ALSA is ready and docker containers are up
-    await asyncio.sleep(2) 
-    
-    # Run in background task to not block startup
+    await asyncio.sleep(2)
     asyncio.create_task(play_tts("Hello Mony", "hello_mony"))
-    
     yield
-    
-    # Shutdown
     print("Mony Backend Shutting Down...")
 
 app = FastAPI(lifespan=lifespan, title="Mony Smart Assistant API")
@@ -161,7 +129,7 @@ except NameError:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost", "http://192.168.2.28"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -173,8 +141,5 @@ async def health_check():
 
 @app.get("/api/test_speaker")
 async def test_speaker():
-    import asyncio
-    # Background task so it doesn't block request
     asyncio.create_task(play_intro_sound())
     return {"status": "ok"}
-
