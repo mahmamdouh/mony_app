@@ -54,6 +54,7 @@ function App() {
 
   const radioStations = [
     { name: "Quran Kareem Radio (Cairo)", location: "Cairo, Egypt", url: "https://n03.radiojar.com/8s5u5tpdtwzuv" },
+    { name: "Quran Kareem Radio 2 (Cairo)", location: "Cairo, Egypt", url: "http://n0a.radiojar.com/8s5u5tpdtwzuv" },
     { name: "Radio 9090 FM", location: "Cairo, Egypt", url: "https://9090streaming.mobtada.com/9090FMEGYPT" },
     { name: "Mega FM 92.7", location: "Cairo, Egypt", url: "https://ice31.securenetsystems.net/NOGOUM" },
     { name: "BBC Arabic", location: "London, UK", url: "http://stream.live.vc.bbcmedia.co.uk/bbc_arabic_radio" },
