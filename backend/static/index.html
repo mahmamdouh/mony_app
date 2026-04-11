@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mony Hub</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:    #0d1117;
+      --card:  rgba(255,255,255,0.06);
+      --brd:   rgba(255,255,255,0.10);
+      --acc1:  #7c3aed;
+      --acc2:  #2563eb;
+      --grn:   #10b981;
+      --txt:   #e2e8f0;
+      --sub:   #64748b;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .logo { font-size: 1.8rem; font-weight: 900; background: linear-gradient(90deg,#7c3aed,#2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { font-size: .8rem; color: var(--sub); margin-top: 2px; }
+
+    /* Volume bar */
+    .vol-wrap {
+      display: flex; align-items: center; gap: .6rem;
+      background: var(--card); border: 1px solid var(--brd);
+      padding: .5rem 1rem; border-radius: 12px;
+    }
+    .vol-wrap input[type=range] { width: 100px; accent-color: var(--acc1); cursor: pointer; }
+    .vol-pct { font-size: .75rem; color: var(--sub); min-width: 32px; text-align: right; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--brd);
+      border-radius: 20px;
+      padding: 1.5rem;
+      backdrop-filter: blur(12px);
+    }
+
+    .card-title {
+      font-size: 1rem; font-weight: 700;
+      display: flex; align-items: center; gap: .5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .icon { font-size: 1.2rem; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+      padding: .6rem 1.4rem; border-radius: 12px; border: none;
+      font-family: inherit; font-weight: 600; font-size: .875rem;
+      cursor: pointer; transition: all .15s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--acc1); color: #fff; }
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-blue   { background: var(--acc2); color: #fff; }
+    .btn-blue:hover { background: #1d4ed8; }
+    .btn-green  { background: var(--grn); color: #fff; }
+    .btn-green:hover { background: #059669; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-ghost  { background: rgba(255,255,255,.08); color: var(--txt); }
+    .btn-ghost:hover { background: rgba(255,255,255,.15); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-full { width: 100%; }
+
+    /* Radio */
+    .station-list { display: flex; flex-direction: column; gap: .6rem; }
+    .station {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(0,0,0,.25); border: 1px solid var(--brd);
+      border-radius: 12px; padding: .75rem 1rem;
+      transition: border-color .15s;
+    }
+    .station.active { border-color: var(--acc2); }
+    .station-name { font-size: .875rem; font-weight: 600; }
+    .live-dot {
+      display: inline-block; width: 8px; height: 8px;
+      background: #ef4444; border-radius: 50%;
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* Songs */
+    select {
+      width: 100%; background: rgba(0,0,0,.3); border: 1px solid var(--brd);
+      color: var(--txt); border-radius: 10px; padding: .6rem .8rem;
+      font-family: inherit; font-size: .875rem; margin-bottom: .8rem;
+      cursor: pointer;
+    }
+    option { background: #1e293b; }
+
+    .play-row { display: flex; gap: .6rem; }
+
+    /* Status toast */
+    #toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: rgba(30,41,59,.95); border: 1px solid var(--brd);
+      color: var(--txt); padding: .75rem 1.2rem; border-radius: 12px;
+      font-size: .85rem; backdrop-filter: blur(8px);
+      transform: translateY(80px); opacity: 0;
+      transition: all .3s; pointer-events: none; z-index: 99;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">🔊 Mony</div>
+    <div class="subtitle">Smart Media Hub</div>
+  </div>
+  <div class="vol-wrap">
+    <span>🔈</span>
+    <input type="range" id="volSlider" min="0" max="100" value="50"
+           oninput="document.getElementById('volPct').textContent=this.value+'%'"
+           onmouseup="setVolume(this.value)"
+           ontouchend="setVolume(this.value)" />
+    <span class="vol-pct" id="volPct">50%</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- Test Speaker card -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🔊</span> Speaker Test</div>
+    <p style="color:var(--sub);font-size:.85rem;margin-bottom:1rem;">
+      Play an intro sound to verify audio output is working.
+    </p>
+    <button class="btn btn-primary btn-full" onclick="testSpeaker()">
+      ▶ Test Speaker
+    </button>
+    <button class="btn btn-danger btn-full" style="margin-top:.6rem" onclick="stopAll()">
+      ⏹ Stop All Audio
+    </button>
+  </div>
+
+  <!-- Radio card -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📻</span> Web Radio</div>
+    <div class="station-list" id="stationList">
+      <p style="color:var(--sub);font-size:.85rem;">Loading stations…</p>
+    </div>
+  </div>
+
+  <!-- Songs card -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🎵</span> Songs Library</div>
+    <select id="songSelect">
+      <option value="">Loading songs…</option>
+    </select>
+    <div class="play-row">
+      <button class="btn btn-green" style="flex:1" onclick="playSong()">▶ Play</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="stopAll()">⏹ Stop</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = '';   // same origin
+  let activeStation = null;
+
+  function toast(msg, ms=3000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  async function api(method, path, body) {
+    try {
+      const opts = { method, headers: {'Content-Type':'application/json'} };
+      if (body) opts.body = JSON.stringify(body);
+      const r = await fetch(API + path, opts);
+      return await r.json();
+    } catch(e) { toast('❌ Network error'); }
+  }
+
+  /* Volume */
+  async function setVolume(v) {
+    await api('POST', '/api/volume', {level: parseInt(v)});
+    toast(`🔊 Volume: ${v}%`);
+  }
+
+  /* Test speaker */
+  async function testSpeaker() {
+    toast('🔊 Playing test sound…');
+    await api('GET', '/api/test_speaker');
+  }
+
+  /* Stop everything */
+  async function stopAll() {
+    await api('POST', '/api/stop');
+    activeStation = null;
+    renderStations(window._stations || []);
+    toast('⏹ Stopped');
+  }
+
+  /* Radio */
+  async function loadStations() {
+    const data = await api('GET', '/api/stations');
+    window._stations = data || [];
+    renderStations(window._stations);
+  }
+
+  function renderStations(stations) {
+    const el = document.getElementById('stationList');
+    el.innerHTML = stations.map(s => `
+      <div class="station ${activeStation===s.id?'active':''}" id="st-${s.id}">
+        <div>
+          <div class="station-name">${s.name}</div>
+          ${activeStation===s.id ? '<span class="live-dot"></span> LIVE' : ''}
+        </div>
+        <button class="btn ${activeStation===s.id?'btn-danger':'btn-blue'}"
+          onclick="playStation('${s.id}','${s.name}')">
+          ${activeStation===s.id ? '⏹ Stop' : '▶ Play'}
+        </button>
+      </div>
+    `).join('');
+  }
+
+  async function playStation(id, name) {
+    if (activeStation === id) {
+      await api('POST', '/api/radio', {station_id: id, action: 'stop'});
+      activeStation = null;
+      toast(`⏹ Stopped ${name}`);
+    } else {
+      activeStation = id;
+      toast(`📻 Tuning to ${name}…`);
+      await api('POST', '/api/radio', {station_id: id, action: 'play'});
+    }
+    renderStations(window._stations || []);
+  }
+
+  /* Songs */
+  async function loadSongs() {
+    const data = await api('GET', '/api/songs');
+    const sel = document.getElementById('songSelect');
+    if (!data || data.length === 0) {
+      sel.innerHTML = '<option value="">No songs found</option>';
+    } else {
+      sel.innerHTML = data.map(f => `<option value="${f}">${f}</option>`).join('');
+    }
+  }
+
+  async function playSong() {
+    const sel = document.getElementById('songSelect');
+    if (!sel.value) return;
+    toast(`🎵 Playing: ${sel.value}`);
+    await api('POST', '/api/songs/play', {filename: sel.value, action: 'play'});
+  }
+
+  /* Load volume */
+  async function loadVolume() {
+    const d = await api('GET', '/api/volume');
+    if (d) {
+      document.getElementById('volSlider').value = d.level;
+      document.getElementById('volPct').textContent = d.level + '%';
+    }
+  }
+
+  /* Init */
+  loadVolume();
+  loadStations();
+  loadSongs();
+</script>
+</body>
+</html>

@@ -1,9 +1,3 @@
 fastapi
-uvicorn
-apscheduler
-edge-tts
-docker
-requests
+uvicorn[standard]
 python-multipart
-# mawaqit is the Mawaqit API Python Wrapper
-mawaqit
