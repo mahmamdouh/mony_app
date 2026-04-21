@@ -327,7 +327,10 @@ function App() {
       setAlarmModalOpen(false);
       setAlarmDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
       fetchAlarms();
-    } catch { }
+    } catch (err) {
+      console.error('Save alarm failed:', err.response?.status, err.response?.data || err.message);
+      alert(`Failed to save alarm: ${err.response?.data?.detail || err.message}`);
+    }
   };
 
   const submitEvent = async (e) => {
@@ -342,7 +345,10 @@ function App() {
       setEventModalOpen(false);
       setEventForm({ date: '', time: '', label: '', sound_file: '' });
       fetchEvents();
-    } catch { }
+    } catch (err) {
+      console.error('Save event failed:', err.response?.status, err.response?.data || err.message);
+      alert(`Failed to save event: ${err.response?.data?.detail || err.message}`);
+    }
   };
 
   const deleteEvent = async (id) => {
