@@ -19,7 +19,9 @@ def init_db():
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 datetime TEXT NOT NULL,
-                label TEXT
+                label TEXT,
+                sound_file TEXT,
+                notified BOOLEAN DEFAULT 0
             )
         ''')
         conn.execute('''
@@ -34,14 +36,20 @@ def init_db():
                 isha_adhan TEXT
             )
         ''')
-        
-    # Attempt to gracefully add sound_file if we are upgrading
-    try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.execute("ALTER TABLE alarms ADD COLUMN sound_file TEXT")
-    except sqlite3.OperationalError:
-        pass # Column already exists
-        
+
+    # Graceful column migrations
+    migrations = [
+        ("alarms",  "ALTER TABLE alarms ADD COLUMN sound_file TEXT"),
+        ("events",  "ALTER TABLE events ADD COLUMN sound_file TEXT"),
+        ("events",  "ALTER TABLE events ADD COLUMN notified BOOLEAN DEFAULT 0"),
+    ]
+    for _, sql in migrations:
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
 init_db()
 
 @contextmanager

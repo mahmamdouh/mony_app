@@ -1,5 +1,6 @@
 import os
 import subprocess
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
@@ -13,6 +14,11 @@ class Alarm(BaseModel):
     days: str
     sound_file: Optional[str] = None
     active: bool = True
+
+class Event(BaseModel):
+    datetime: str          # ISO-8601: "2026-04-22T08:00"
+    label: str
+    sound_file: Optional[str] = None
 
 class RadioRequest(BaseModel):
     url: str
@@ -47,19 +53,66 @@ def add_alarm(alarm: Alarm):
 @router.delete("/alarms/{alarm_id}")
 def delete_alarm(alarm_id: int):
     with get_db() as db:
-        db.execute("DELETE FROM alarms WHERE id = ?", (alarm_id,))
+        db.execute(\"DELETE FROM alarms WHERE id = ?\", (alarm_id,))
         db.commit()
-    return {"status": "ok"}
+    return {\"status\": \"ok\"}
 
-@router.patch("/alarms/{alarm_id}/toggle")
+@router.patch(\"/alarms/{alarm_id}/toggle\")
 def toggle_alarm(alarm_id: int):
     with get_db() as db:
         # Flip the active flag
-        db.execute("UPDATE alarms SET active = NOT active WHERE id = ?", (alarm_id,))
+        db.execute(\"UPDATE alarms SET active = NOT active WHERE id = ?\", (alarm_id,))
         db.commit()
-    return {"status": "ok"}
+    return {\"status\": \"ok\"}
 
-@router.post("/upload")
+# ── Events ────────────────────────────────────────────────────────────────────
+
+@router.get(\"/events\")
+def get_events():
+    with get_db() as db:
+        return [dict(r) for r in db.execute(
+            \"SELECT * FROM events ORDER BY datetime ASC\"
+        ).fetchall()]
+
+@router.post(\"/events\")
+def add_event(event: Event):
+    with get_db() as db:
+        db.execute(
+            \"INSERT INTO events (datetime, label, sound_file, notified) VALUES (?, ?, ?, 0)\",
+            (event.datetime, event.label, event.sound_file)
+        )
+        db.commit()
+    return {\"status\": \"ok\"}
+
+@router.delete(\"/events/{event_id}\")
+def delete_event(event_id: int):
+    with get_db() as db:
+        db.execute(\"DELETE FROM events WHERE id = ?\", (event_id,))
+        db.commit()
+    return {\"status\": \"ok\"}
+
+@router.get(\"/events/due\")
+def get_due_events():
+    \"\"\"
+    Returns events whose datetime is within the current minute and not yet notified.
+    Marks them as notified so they only fire once.
+    \"\"\"
+    now = datetime.now()
+    # Match events where the stored datetime string starts with the current minute
+    current_minute = now.strftime(\"%Y-%m-%dT%H:%M\")
+    with get_db() as db:
+        rows = db.execute(
+            \"SELECT * FROM events WHERE datetime LIKE ? AND notified = 0\",
+            (f\"{current_minute}%\",)
+        ).fetchall()
+        due = [dict(r) for r in rows]
+        if due:
+            ids = \",\".join(str(r[\"id\"]) for r in due)
+            db.execute(f\"UPDATE events SET notified = 1 WHERE id IN ({ids})\")
+            db.commit()
+    return due
+
+@router.post(\"/upload\")
 async def upload_file(file: UploadFile = File(...)):
     music_dir = "/data/music"
     os.makedirs(music_dir, exist_ok=True)
