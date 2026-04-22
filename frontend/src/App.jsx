@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Bell, Music, Radio, Sun, Moon, MapPin, UploadCloud,
-  Play, Pause, Settings, Mic2, Activity, Volume2, X, Plus,
-  Trash2, CalendarClock, Calendar, Clock, AlarmCheck
+  Bell, Music, Radio, Sun, Moon, UploadCloud,
+  Play, Pause, Mic2, Activity, Volume2, X, Plus,
+  Trash2, CalendarClock, Calendar, Clock, AlarmCheck, RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
-import { Coordinates, CalculationMethod, PrayerTimes } from 'adhan';
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 const GlassPanel = ({ children, className = '', onClick }) => (
@@ -103,11 +102,10 @@ function App() {
   const [events, setEvents] = useState([]);
   const [musicFiles, setMusicFiles] = useState([]);
 
-  const [leftTab, setLeftTab] = useState('alarms'); // 'alarms' | 'events'
+  const [leftTab, setLeftTab] = useState('alarms');
 
   const [isAlarmModalOpen, setAlarmModalOpen] = useState(false);
   const [isEventModalOpen, setEventModalOpen] = useState(false);
-  const [isMosqueModalOpen, setMosqueModalOpen] = useState(false);
 
   // Alarm form state
   const [alarmDays, setAlarmDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
@@ -115,11 +113,9 @@ function App() {
   // Event form state
   const [eventForm, setEventForm] = useState({ date: '', time: '', label: '', sound_file: '' });
 
-  const [searchResults, setSearchResults] = useState([]);
-  const [selectedMosque, setSelectedMosque] = useState(null);
-  const [adhanSettings, setAdhanSettings] = useState({ Fajr: '', Dhuhr: '', Asr: '', Maghrib: '', Isha: '' });
+  // Prayer times from backend
   const [prayers, setPrayers] = useState({});
-  const [nextPrayerName, setNextPrayerName] = useState('');
+  const [isSyncingPrayers, setIsSyncingPrayers] = useState(false);
 
   const [songs, setSongs] = useState([]);
   const [selectedSong, setSelectedSong] = useState('');
@@ -153,9 +149,8 @@ function App() {
     fetchEvents();
     fetchMusic();
     fetchSongs();
-    fetchMawaqitSettings();
     fetchVolume();
-    calculatePrayers();
+    fetchPrayers();
   }, [time.getDate()]);
 
   // ── Events due polling (every 30s) ──────────────────────────────────────────
@@ -224,17 +219,39 @@ function App() {
     try { const r = await axios.get('/api/music'); setMusicFiles(r.data); } catch { }
   };
 
-  const calculatePrayers = () => {
-    const coord = new Coordinates(30.0444, 31.2357);
-    const pt = new PrayerTimes(coord, new Date(), CalculationMethod.Egyptian());
-    setPrayers({ Fajr: pt.fajr, Dhuhr: pt.dhuhr, Asr: pt.asr, Maghrib: pt.maghrib, Isha: pt.isha });
-    setNextPrayerName(pt.nextPrayer());
+  const fetchPrayers = async () => {
+    try {
+      const r = await axios.get('/api/prayers');
+      setPrayers(r.data);
+    } catch { }
   };
 
-  const formatPrayerTime = (d) => {
-    if (!d) return '--:--';
-    if (typeof d === 'string') return d;
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const syncPrayers = async () => {
+    setIsSyncingPrayers(true);
+    try {
+      await axios.post('/api/prayers/sync');
+      // Poll until we get data (sync runs asynchronously)
+      let retries = 10;
+      while (retries-- > 0) {
+        await new Promise(r => setTimeout(r, 3000));
+        const res = await axios.get('/api/prayers');
+        if (Object.keys(res.data).length > 0) {
+          setPrayers(res.data);
+          break;
+        }
+      }
+    } catch { }
+    setIsSyncingPrayers(false);
+  };
+
+  // Determine next upcoming prayer
+  const getNextPrayer = () => {
+    const now = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const order = ['Fajr', 'Shuruq', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    for (const p of order) {
+      if (prayers[p] && prayers[p] > now) return p;
+    }
+    return order[0]; // wrap to Fajr next day
   };
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -657,42 +674,70 @@ function App() {
           </GlassPanel>
         </div>
 
-        {/* ── Right Column: Prayer & Upload ─────────────────────────────────── */}
+        {/* ── Right Column: Prayer Times & Upload ─────────────────────────── */}
         <div className="lg:col-span-4 flex flex-col gap-6">
 
-          <GlassPanel className="relative overflow-hidden group">
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5 text-emerald-400" /> Islamic Assistant
-            </h3>
-
-            <div className="bg-black/30 rounded-2xl p-5 border border-emerald-500/20 mb-5">
-              <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Next Prayer
-              </p>
-              <div className="flex justify-between items-end border-b border-white/5 pb-2">
-                <h4 className="text-4xl font-light tracking-wide text-white capitalize">
-                  {nextPrayerName !== 'none' ? nextPrayerName : 'Isha'}
-                </h4>
-                <span className="text-2xl font-medium text-emerald-300 font-mono">
-                  {nextPrayerName !== 'none' && prayers[nextPrayerName.charAt(0).toUpperCase() + nextPrayerName.slice(1)]
-                    ? formatPrayerTime(prayers[nextPrayerName.charAt(0).toUpperCase() + nextPrayerName.slice(1)])
-                    : '--:--'
-                  }
-                </span>
-              </div>
+          {/* Prayer Times Panel */}
+          <GlassPanel className="relative overflow-hidden">
+            <div className="absolute right-4 top-4 opacity-10 text-emerald-400">
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 1 1 12 2z"/></svg>
             </div>
 
-            <div className="space-y-px bg-black/10 rounded-xl p-2 border border-white/5">
-              {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(p => (
-                <div key={p} className={`flex justify-between text-sm px-3 py-2 rounded-lg transition-colors ${nextPrayerName.toLowerCase() === p.toLowerCase() ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30' : 'text-slate-400'}`}>
-                  <span>{p}</span><span className="font-mono">{formatPrayerTime(prayers[p])}</span>
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <span className="text-2xl">🕌</span> Prayer Times
+              </h3>
+              <button
+                onClick={syncPrayers}
+                disabled={isSyncingPrayers}
+                title="Re-sync from Mawaqit"
+                className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all disabled:opacity-40"
+              >
+                <RefreshCw className={`w-4 h-4 text-emerald-400 ${isSyncingPrayers ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+
+            {/* Next prayer hero */}
+            {(() => {
+              const next = getNextPrayer();
+              return Object.keys(prayers).length > 0 ? (
+                <div className="bg-gradient-to-br from-emerald-900/40 to-teal-900/20 rounded-2xl p-4 border border-emerald-500/25 mb-4">
+                  <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Next Prayer
+                  </p>
+                  <div className="flex justify-between items-end">
+                    <span className="text-3xl font-bold text-white">{next}</span>
+                    <span className="text-2xl font-mono font-bold text-emerald-300">{prayers[next] || '--:--'}</span>
+                  </div>
                 </div>
-              ))}
+              ) : (
+                <div className="bg-black/20 rounded-2xl p-4 border border-white/5 mb-4 text-center">
+                  <p className="text-slate-500 text-sm">
+                    {isSyncingPrayers ? 'Syncing prayer times...' : 'No times yet — tap 🔄 to sync'}
+                  </p>
+                </div>
+              );
+            })()}
+
+            {/* All prayers list */}
+            <div className="space-y-1">
+              {['Fajr','Shuruq','Dhuhr','Asr','Maghrib','Isha'].map(p => {
+                const next = getNextPrayer();
+                const isNext = p === next && prayers[p];
+                return (
+                  <div key={p} className={`flex justify-between items-center px-4 py-2.5 rounded-xl transition-all ${
+                    isNext
+                      ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold'
+                      : 'text-slate-400 hover:bg-white/5'
+                  }`}>
+                    <span className="text-sm">{p}</span>
+                    <span className="font-mono text-sm tracking-wider">{prayers[p] || '--:--'}</span>
+                  </div>
+                );
+              })}
             </div>
 
-            <button onClick={() => setMosqueModalOpen(true)} className="w-full mt-5 py-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10 text-sm font-semibold flex items-center justify-center gap-2 text-slate-300">
-              <Settings className="w-4 h-4" /> Configure Adhan
-            </button>
+            <p className="text-xs text-slate-600 mt-3 text-center">Al-Fourqaan Mosque · Auto-synced daily</p>
           </GlassPanel>
 
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".mp3,.wav" />

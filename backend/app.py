@@ -66,9 +66,11 @@ async def alarm_scheduler():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(alarm_scheduler())
+    t1 = asyncio.create_task(alarm_scheduler())
+    t2 = asyncio.create_task(prayer_scheduler())
+    t3 = asyncio.create_task(daily_prayer_sync())
     yield
-    task.cancel()
+    t1.cancel(); t2.cancel(); t3.cancel()
 
 
 app = FastAPI(title="Mony Hub", lifespan=lifespan)
@@ -115,6 +117,15 @@ def init_db():
                 asr_adhan TEXT,
                 maghrib_adhan TEXT,
                 isha_adhan TEXT
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS prayer_times (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                date    TEXT NOT NULL,
+                prayer  TEXT NOT NULL,
+                time    TEXT NOT NULL,
+                fired   BOOLEAN DEFAULT 0
             )
         ''')
 
@@ -527,6 +538,126 @@ async def alarm_scheduler():
 
         # Sleep until the start of the next minute
         await asyncio.sleep(60 - datetime.now().second)
+
+
+# ── Prayer Sync & Azan Scheduler ───────────────────────────────────────────
+PRAYER_LABELS = ["Fajr", "Shuruq", "Dhuhr", "Asr", "Maghrib", "Isha"]
+AZAN_FILES = {
+    "Fajr":    "/sounds/Azan/Fajr.mp3",
+    "Shuruq":  "/sounds/Azan/Shuruq.mp3",
+    "Dhuhr":   "/sounds/Azan/Dhuhr.mp3",
+    "Asr":     "/sounds/Azan/Asr.mp3",
+    "Maghrib": "/sounds/Azan/Maghrib.mp3",
+    "Isha":    "/sounds/Azan/Isha.mp3",
+}
+
+async def sync_prayer_times():
+    """Fetch today's prayer times from Mawaqit and store in DB."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    print(f"Syncing prayer times for {today}...")
+    try:
+        from mawaqit import AsyncMawaqitClient
+        EMAIL    = "mahmoud.elmohtady@gmail.com"
+        PASSWORD = "Mahmoud=2020"
+        SEARCH   = "Al-Fourqaan Eindhoven"
+
+        async with AsyncMawaqitClient(username=EMAIL, password=PASSWORD) as client:
+            await client.login()
+            mosques = await client.fetch_mosques_by_keyword(SEARCH)
+            if not mosques:
+                print("Prayer sync: mosque not found")
+                return
+            mosque_data = mosques[0]
+            times = mosque_data.get("times")
+            if not times:
+                client.mosque = mosque_data["uuid"]
+                times = await client.fetch_prayer_times()
+
+        if not isinstance(times, list) or len(times) < 6:
+            print(f"Prayer sync: unexpected times format: {times}")
+            return
+
+        # Store in DB — replace today's rows
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("DELETE FROM prayer_times WHERE date = ?", (today,))
+            for i, label in enumerate(PRAYER_LABELS):
+                conn.execute(
+                    "INSERT INTO prayer_times (date, prayer, time, fired) VALUES (?, ?, ?, 0)",
+                    (today, label, times[i])
+                )
+        print(f"Prayer times synced: {dict(zip(PRAYER_LABELS, times[:6]))}")
+
+    except Exception as e:
+        print(f"Prayer sync error: {e}")
+
+
+async def prayer_scheduler():
+    """Every minute: check if any prayer time has arrived and play its Azan."""
+    print("Prayer scheduler started")
+    while True:
+        now          = datetime.now()
+        today        = now.strftime("%Y-%m-%d")
+        current_time = now.strftime("%H:%M")
+
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute(
+                    "SELECT * FROM prayer_times WHERE date = ? AND time = ? AND fired = 0",
+                    (today, current_time)
+                ).fetchall()
+
+            for row in rows:
+                prayer = row["prayer"]
+                azan   = AZAN_FILES.get(prayer)
+                print(f"Azan time: {prayer} at {current_time}")
+
+                # Mark as fired before playing
+                with sqlite3.connect(DB_PATH) as conn:
+                    conn.execute("UPDATE prayer_times SET fired = 1 WHERE id = ?", (row["id"],))
+
+                # Stop whatever is currently playing, then play Azan
+                if azan and os.path.exists(azan):
+                    threading.Thread(target=play_file_bg, args=(azan,), daemon=True).start()
+                else:
+                    print(f"Azan file not found: {azan}")
+
+        except Exception as e:
+            print(f"Prayer scheduler error: {e}")
+
+        await asyncio.sleep(60 - datetime.now().second)
+
+
+async def daily_prayer_sync():
+    """Sync prayer times at startup, then re-sync every day at midnight."""
+    await sync_prayer_times()     # immediate sync on startup
+    while True:
+        now = datetime.now()
+        # Seconds until next midnight
+        seconds_to_midnight = ((24 - now.hour - 1) * 3600
+                               + (60 - now.minute - 1) * 60
+                               + (60 - now.second))
+        await asyncio.sleep(seconds_to_midnight)
+        await sync_prayer_times()
+
+
+# ── Prayer API ─────────────────────────────────────────────────────────────────
+@app.get("/api/prayers")
+def get_prayers():
+    today = datetime.now().strftime("%Y-%m-%d")
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT prayer, time FROM prayer_times WHERE date = ? ORDER BY time",
+            (today,)
+        ).fetchall()
+    return {r["prayer"]: r["time"] for r in rows}
+
+@app.post("/api/prayers/sync")
+async def trigger_prayer_sync():
+    """Manual re-sync button."""
+    asyncio.create_task(sync_prayer_times())
+    return {"status": "syncing"}
 
 # ── Serve frontend ───────────────────────────────────────────────────────
 STATIC_DIR = "/app/static"
