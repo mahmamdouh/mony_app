@@ -137,10 +137,29 @@ function App() {
 
   const currentRadio = radioStations[radioIndex];
 
-  // ── Clock tick ──────────────────────────────────────────────────────────────
+  // ── Clock: synced to Pi server time ─────────────────────────────────────────
+  const serverOffsetMs = useRef(0); // Pi time minus browser time
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    // Fetch server time once, compute offset, then tick locally
+    const syncClock = async () => {
+      try {
+        const before = Date.now();
+        const res = await axios.get('/api/time');
+        const after = Date.now();
+        const rtt = after - before;
+        const serverMs = res.data.unix * 1000;
+        // Compensate for half the round-trip latency
+        serverOffsetMs.current = serverMs - before - rtt / 2;
+      } catch { /* keep zero offset */ }
+    };
+    syncClock();
+    // Re-sync every 5 minutes to drift-correct
+    const syncTimer = setInterval(syncClock, 5 * 60 * 1000);
+    // Tick every second using the cached offset
+    const tickTimer = setInterval(() => {
+      setTime(new Date(Date.now() + serverOffsetMs.current));
+    }, 1000);
+    return () => { clearInterval(syncTimer); clearInterval(tickTimer); };
   }, []);
 
   // ── Initial fetch ───────────────────────────────────────────────────────────

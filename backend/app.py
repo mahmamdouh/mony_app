@@ -9,6 +9,7 @@ import subprocess
 import threading
 import asyncio
 import sqlite3
+import time as time_module
 from contextlib import contextmanager, asynccontextmanager
 from datetime import datetime
 
@@ -157,13 +158,17 @@ def get_db():
 current_process: Optional[subprocess.Popen] = None
 process_lock = threading.Lock()
 
+# Tracks what is currently playing so Azan can resume it afterwards
+# { "type": "none" | "radio" | "song" | "azan",  "data": url_or_path }
+current_playing_state: dict = {"type": "none", "data": None}
+
 SONGS_DIR  = "/sounds/songs"
 INTRO_DIR  = "/sounds/intro"
 AZAN_DIR   = "/sounds/Azan"
 MUSIC_DIR  = "/data/music"
 
 def kill_current():
-    global current_process
+    global current_process, current_playing_state
     with process_lock:
         if current_process and current_process.poll() is None:
             current_process.terminate()
@@ -172,10 +177,12 @@ def kill_current():
             except subprocess.TimeoutExpired:
                 current_process.kill()
         current_process = None
+    current_playing_state = {"type": "none", "data": None}
 
 def play_file_bg(path: str):
-    global current_process
+    global current_process, current_playing_state
     kill_current()
+    current_playing_state = {"type": "song", "data": path}
     cmd = ["cvlc", "--play-and-exit", "--quiet", path]
     with process_lock:
         current_process = subprocess.Popen(
@@ -183,13 +190,55 @@ def play_file_bg(path: str):
         )
 
 def stream_radio_bg(url: str):
-    global current_process
+    global current_process, current_playing_state
     kill_current()
+    current_playing_state = {"type": "radio", "data": url}
     cmd = ["cvlc", "--quiet", url]
     with process_lock:
         current_process = subprocess.Popen(
             cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
+
+def play_azan_and_resume(azan_path: str):
+    """
+    TOP PRIORITY — preempts everything, plays azan to completion, then resumes.
+    Call this from a daemon thread (it blocks until the Azan MP3 finishes).
+    """
+    global current_process, current_playing_state
+
+    # 1. Save what was playing BEFORE stopping it
+    prev = current_playing_state.copy()
+    print(f"Azan preempting '{prev['type']}': {prev['data']}")
+
+    # 2. Hard-stop current playback (without resetting state via kill_current,
+    #    so we manage state manually here)
+    with process_lock:
+        if current_process and current_process.poll() is None:
+            current_process.terminate()
+            try:
+                current_process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                current_process.kill()
+        current_process = None
+    current_playing_state = {"type": "azan", "data": azan_path}
+
+    # 3. Play Azan and WAIT (blocking) until it finishes
+    cmd = ["cvlc", "--play-and-exit", "--quiet", azan_path]
+    with process_lock:
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        current_process = proc
+    proc.wait()  # block here until Azan MP3 ends
+
+    current_playing_state = {"type": "none", "data": None}
+    print(f"Azan finished. Resuming: {prev}")
+
+    # 4. Resume previous playback
+    if prev["type"] == "radio" and prev["data"]:
+        stream_radio_bg(prev["data"])
+    elif prev["type"] == "song" and prev["data"]:
+        if os.path.exists(prev["data"]):
+            play_file_bg(prev["data"])
+
 
 def resolve_sound_path(sound_file: str) -> Optional[str]:
     """Resolve a sound_file string (e.g. 'songs/foo.mp3' or 'foo.mp3') to an absolute path."""
@@ -209,6 +258,7 @@ def resolve_sound_path(sound_file: str) -> Optional[str]:
         if not os.path.exists(path):
             path = os.path.join(SONGS_DIR, sound_file)
     return path if os.path.exists(path) else None
+
 
 # ── Models ───────────────────────────────────────────────────────────────────
 class RadioRequest(BaseModel):
@@ -247,6 +297,17 @@ class MawaqitSettings(BaseModel):
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+# ── Server Time (for clock sync) ──────────────────────────────────────────────────────
+@app.get("/api/time")
+def get_time():
+    now = datetime.now()
+    return {
+        "iso":  now.isoformat(),
+        "unix": time_module.time(),
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S"),
+    }
 
 # ── Speaker test ─────────────────────────────────────────────────────────────
 @app.get("/api/test_speaker")
@@ -616,9 +677,11 @@ async def prayer_scheduler():
                 with sqlite3.connect(DB_PATH) as conn:
                     conn.execute("UPDATE prayer_times SET fired = 1 WHERE id = ?", (row["id"],))
 
-                # Stop whatever is currently playing, then play Azan
+                # PRIORITY: preempt everything, play azan to completion, then resume
                 if azan and os.path.exists(azan):
-                    threading.Thread(target=play_file_bg, args=(azan,), daemon=True).start()
+                    threading.Thread(
+                        target=play_azan_and_resume, args=(azan,), daemon=True
+                    ).start()
                 else:
                     print(f"Azan file not found: {azan}")
 
