@@ -7,11 +7,71 @@ from typing import Optional
 import os
 import subprocess
 import threading
+import asyncio
 import sqlite3
-from contextlib import contextmanager
+from contextlib import contextmanager, asynccontextmanager
 from datetime import datetime
 
-app = FastAPI(title="Mony Hub")
+
+# ── Alarm Scheduler (defined early so lifespan can reference it) ───────────────
+async def alarm_scheduler():
+    """
+    Background task: wakes every minute, fires any active alarm
+    whose time matches now AND whose repeat days include today.
+    """
+    print("Alarm scheduler started")
+    while True:
+        now = datetime.now()
+        current_time = now.strftime("%H:%M")   # e.g. "07:30"
+        current_day  = now.strftime("%a")       # e.g. "Mon"
+
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                alarms = conn.execute(
+                    "SELECT * FROM alarms WHERE active = 1"
+                ).fetchall()
+
+            for alarm in alarms:
+                alarm = dict(alarm)
+                if alarm["time"] != current_time:
+                    continue
+
+                # Check weekday — empty days = fire every day
+                days_str = alarm.get("days") or ""
+                day_list = [d.strip() for d in days_str.split(",") if d.strip()]
+                if day_list and current_day not in day_list:
+                    continue
+
+                print(f"Alarm firing: '{alarm['label']}' at {current_time}")
+                sound = alarm.get("sound_file")
+                path  = resolve_sound_path(sound) if sound else None
+
+                if path:
+                    threading.Thread(target=play_file_bg, args=(path,), daemon=True).start()
+                else:
+                    label = alarm.get("label") or "Alarm"
+                    def _speak(lbl=label):
+                        subprocess.run(["espeak-ng", lbl],
+                                       stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL)
+                    threading.Thread(target=_speak, daemon=True).start()
+
+        except Exception as e:
+            print(f"Alarm scheduler error: {e}")
+
+        # Sleep until start of next minute
+        await asyncio.sleep(60 - datetime.now().second)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(alarm_scheduler())
+    yield
+    task.cancel()
+
+
+app = FastAPI(title="Mony Hub", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,6 +79,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ── Database ─────────────────────────────────────────────────────────────────
 DB_PATH = "/data/mony.db"
@@ -415,7 +476,59 @@ async def sync_mawaqit_mosque(slug: str):
         print("Sync error:", e)
         return {"status": "error", "message": str(e)}
 
-# ── Serve frontend ────────────────────────────────────────────────────────────
+# ── Alarm Scheduler ──────────────────────────────────────────────────────────
+async def alarm_scheduler():
+    """
+    Background task: runs forever, wakes every minute, fires any active alarm
+    whose time matches now AND whose repeat days include today.
+    """
+    print("Alarm scheduler started")
+    while True:
+        now = datetime.now()
+        current_time = now.strftime("%H:%M")          # e.g. "07:30"
+        current_day  = now.strftime("%a")              # e.g. "Mon"
+
+        try:
+            with get_db() as db:
+                alarms = db.execute(
+                    "SELECT * FROM alarms WHERE active = 1"
+                ).fetchall()
+
+            for alarm in alarms:
+                alarm = dict(alarm)
+                if alarm["time"] != current_time:
+                    continue
+
+                # Check weekday — if days is empty/None, fire every day
+                days_str = alarm.get("days") or ""
+                day_list = [d.strip() for d in days_str.split(",") if d.strip()]
+                if day_list and current_day not in day_list:
+                    continue
+
+                print(f"Alarm firing: '{alarm['label']}' at {current_time}")
+
+                sound = alarm.get("sound_file")
+                path  = resolve_sound_path(sound) if sound else None
+
+                if path:
+                    threading.Thread(target=play_file_bg, args=(path,), daemon=True).start()
+                else:
+                    # Fallback: speak the label via espeak
+                    label = alarm.get("label") or "Alarm"
+                    def _speak(lbl=label):
+                        subprocess.run(
+                            ["espeak-ng", lbl],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                        )
+                    threading.Thread(target=_speak, daemon=True).start()
+
+        except Exception as e:
+            print(f"Alarm scheduler error: {e}")
+
+        # Sleep until the start of the next minute
+        await asyncio.sleep(60 - datetime.now().second)
+
+# ── Serve frontend ───────────────────────────────────────────────────────
 STATIC_DIR = "/app/static"
 if os.path.exists(STATIC_DIR):
     app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
