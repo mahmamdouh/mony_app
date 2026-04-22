@@ -870,64 +870,6 @@ function App() {
         </form>
       </Modal>
 
-      {/* ── MOSQUE CONFIG MODAL ── */}
-      <Modal isOpen={isMosqueModalOpen} onClose={() => setMosqueModalOpen(false)} title="Configure Adhan Output">
-        <div className="space-y-4 text-center">
-          <MapPin className="w-12 h-12 text-emerald-500 mx-auto opacity-80" />
-          <h4 className="text-xl font-bold">Prayer Synchronization</h4>
-          <p className="text-sm text-slate-400">Search for a mosque to sync with Mawaqit, or set local Adhan tracks.</p>
-
-          <div className="flex justify-center mt-4">
-            <button
-              onClick={scanNearestMosques}
-              disabled={isSyncingMawaqit}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-3 rounded-xl text-sm font-bold border border-emerald-500 transition-colors"
-            >
-              {isSyncingMawaqit ? 'Scanning...' : 'Scan Nearest Mosques'}
-            </button>
-          </div>
-
-          {searchResults.length > 0 && (
-            <div className="max-h-32 overflow-y-auto bg-slate-800 border border-slate-600 rounded-xl text-left mt-2">
-              {searchResults.map(m => (
-                <div key={m.uuid} onClick={() => handleMosqueSelect(m)}
-                  className="p-3 border-b border-slate-700 hover:bg-slate-700 cursor-pointer text-sm font-medium">
-                  {m.name || 'Unknown Mosque'}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {selectedMosque && (
-            <div className="text-sm text-emerald-400 font-bold mt-2 p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-              Synced with: {selectedMosque.name}
-            </div>
-          )}
-
-          <div className="space-y-3 mt-4 text-left max-h-48 overflow-y-auto pr-2">
-            {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(prayer => (
-              <div key={prayer}>
-                <label className="block text-sm font-bold text-slate-300 mt-2">{prayer} Adhan Track</label>
-                <select
-                  value={adhanSettings[prayer]}
-                  onChange={e => setAdhanSettings({ ...adhanSettings, [prayer]: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-                >
-                  <option value="">Default Backend Adhan</option>
-                  {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
-                </select>
-              </div>
-            ))}
-          </div>
-
-          <button onClick={saveMawaqitConfig}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg mt-6"
-          >
-            Apply Configuration
-          </button>
-        </div>
-      </Modal>
-
     </div>
   );
 }
