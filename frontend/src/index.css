@@ -1,12 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Nunito", "Poppins", "Inter", system-ui, sans-serif;
   
-  /* Glassmorphism theme colors */
-  --color-glass-dark: rgba(30, 30, 30, 0.4);
-  --color-glass-border: rgba(255, 255, 255, 0.1);
-  --color-mony-accent: #8b5cf6;
+  --color-dory-blue: #0D70EA;
+  --color-dory-yellow: #FFD13B;
+  --color-reef-coral: #FF6B57;
+  --color-reef-sand: #F4D06F;
+  --color-ice-blue: #D6F4FF;
+  
+  --color-glass-dark: rgba(255, 255, 255, 0.25);
+  --color-glass-border: rgba(255, 255, 255, 0.55);
 }
 
 body {

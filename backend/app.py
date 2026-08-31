@@ -12,6 +12,7 @@ import sqlite3
 import time as time_module
 from contextlib import contextmanager, asynccontextmanager
 from datetime import datetime
+import hashlib
 
 
 # ── Alarm Scheduler (defined early so lifespan can reference it) ───────────────
@@ -70,8 +71,9 @@ async def lifespan(app: FastAPI):
     t1 = asyncio.create_task(alarm_scheduler())
     t2 = asyncio.create_task(prayer_scheduler())
     t3 = asyncio.create_task(daily_prayer_sync())
+    t4 = asyncio.create_task(event_scheduler())
     yield
-    t1.cancel(); t2.cancel(); t3.cancel()
+    t1.cancel(); t2.cancel(); t3.cancel(); t4.cancel()
 
 
 app = FastAPI(title="Mony Hub", lifespan=lifespan)
@@ -135,6 +137,10 @@ def init_db():
         "ALTER TABLE alarms ADD COLUMN sound_file TEXT",
         "ALTER TABLE events ADD COLUMN sound_file TEXT",
         "ALTER TABLE events ADD COLUMN notified BOOLEAN DEFAULT 0",
+        "ALTER TABLE alarms ADD COLUMN use_tts BOOLEAN DEFAULT 0",
+        "ALTER TABLE alarms ADD COLUMN tts_text TEXT",
+        "ALTER TABLE events ADD COLUMN use_tts BOOLEAN DEFAULT 0",
+        "ALTER TABLE events ADD COLUMN tts_text TEXT",
     ]
     for sql in migrations:
         try:
@@ -166,6 +172,8 @@ SONGS_DIR  = "/sounds/songs"
 INTRO_DIR  = "/sounds/intro"
 AZAN_DIR   = "/sounds/Azan"
 MUSIC_DIR  = "/data/music"
+ADHIKR_DIR = "/sounds/Adhkar"
+HADITH_DIR = "/sounds/Hadith"
 
 def kill_current():
     global current_process, current_playing_state
@@ -188,6 +196,30 @@ def play_file_bg(path: str):
         current_process = subprocess.Popen(
             cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
+
+def play_tts_bg(text: str):
+    """Generate and play TTS using edge-tts, falling back to espeak-ng."""
+    cache_dir = "/data/cache"
+    os.makedirs(cache_dir, exist_ok=True)
+    h = hashlib.md5(text.encode('utf-8')).hexdigest()
+    file_path = os.path.join(cache_dir, f"tts_{h}.mp3")
+    
+    if not os.path.exists(file_path):
+        print(f"Generating TTS for: {text}")
+        try:
+            res = subprocess.run(["edge-tts", "--text", text, "--write-media", file_path],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+            if res.returncode != 0:
+                raise Exception("edge-tts command returned non-zero exit code")
+        except Exception as e:
+            print(f"edge-tts failed: {e}. Falling back to espeak-ng.")
+            def _speak():
+                subprocess.run(["espeak-ng", text], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            threading.Thread(target=_speak, daemon=True).start()
+            return
+
+    if os.path.exists(file_path):
+        play_file_bg(file_path)
 
 def stream_radio_bg(url: str):
     global current_process, current_playing_state
@@ -248,6 +280,8 @@ def resolve_sound_path(sound_file: str) -> Optional[str]:
         "songs": SONGS_DIR,
         "Azan":  AZAN_DIR,
         "intro": INTRO_DIR,
+        "Adhkar": ADHIKR_DIR,
+        "Hadith": HADITH_DIR,
     }
     if "/" in sound_file:
         folder, fname = sound_file.split("/", 1)
@@ -257,6 +291,10 @@ def resolve_sound_path(sound_file: str) -> Optional[str]:
         path = os.path.join(MUSIC_DIR, sound_file)
         if not os.path.exists(path):
             path = os.path.join(SONGS_DIR, sound_file)
+        if not os.path.exists(path):
+            path = os.path.join(ADHIKR_DIR, sound_file)
+        if not os.path.exists(path):
+            path = os.path.join(HADITH_DIR, sound_file)
     return path if os.path.exists(path) else None
 
 
@@ -272,17 +310,24 @@ class SongPlayRequest(BaseModel):
 class VolumeRequest(BaseModel):
     level: int  # 0-100
 
+class TTSRequest(BaseModel):
+    text: str
+
 class AlarmModel(BaseModel):
     time: str
     label: str
     days: str
     sound_file: Optional[str] = None
     active: bool = True
+    use_tts: Optional[bool] = False
+    tts_text: Optional[str] = None
 
 class EventModel(BaseModel):
     datetime: str          # "2026-04-22T08:00"
     label: str
     sound_file: Optional[str] = None
+    use_tts: Optional[bool] = False
+    tts_text: Optional[str] = None
 
 class MawaqitSettings(BaseModel):
     mosque_uuid: Optional[str] = None
@@ -339,12 +384,12 @@ def radio_control(req: RadioRequest):
 # ── Music / Songs ─────────────────────────────────────────────────────────────
 @app.get("/api/music")
 def list_music():
-    music_dirs = [MUSIC_DIR, AZAN_DIR, INTRO_DIR, SONGS_DIR]
+    music_dirs = [MUSIC_DIR, AZAN_DIR, INTRO_DIR, SONGS_DIR, ADHIKR_DIR, HADITH_DIR]
     files = []
     for d in music_dirs:
         if os.path.exists(d):
             for f in os.listdir(d):
-                if f.endswith(('.mp3', '.wav')):
+                if f.endswith(('.mp3', '.wav', '.webm')):
                     label = f"{os.path.basename(d)}/{f}" if d != MUSIC_DIR else f
                     files.append(label)
     return files
@@ -375,6 +420,34 @@ async def upload_file(file: UploadFile = File(...)):
         f.write(content)
     return {"info": f"Saved '{file.filename}'"}
 
+@app.post("/api/download_resources")
+def download_resources_endpoint():
+    try:
+        from download_resources import run_download
+        threading.Thread(target=run_download, daemon=True).start()
+        return {"status": "started"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/download_status")
+def get_download_status():
+    try:
+        from download_resources import STATUS
+        return STATUS
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/launch_gcompris")
+def launch_gcompris():
+    try:
+        env = os.environ.copy()
+        env["WAYLAND_DISPLAY"] = "wayland-0"
+        env["XDG_RUNTIME_DIR"] = "/run/user/1000"
+        subprocess.Popen(["gcompris-qt"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # ── Volume ────────────────────────────────────────────────────────────────────
 @app.get("/api/volume")
 def get_volume():
@@ -395,6 +468,11 @@ def set_volume(req: VolumeRequest):
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"status": "ok", "level": level}
 
+@app.post("/api/tts")
+def play_tts_endpoint(req: TTSRequest):
+    threading.Thread(target=play_tts_bg, args=(req.text,), daemon=True).start()
+    return {"status": "ok", "text": req.text}
+
 @app.post("/api/stop")
 def stop_all():
     kill_current()
@@ -410,8 +488,8 @@ def get_alarms():
 def add_alarm(alarm: AlarmModel):
     with get_db() as db:
         db.execute(
-            "INSERT INTO alarms (time, label, days, sound_file, active) VALUES (?, ?, ?, ?, ?)",
-            (alarm.time, alarm.label, alarm.days, alarm.sound_file, alarm.active)
+            "INSERT INTO alarms (time, label, days, sound_file, active, use_tts, tts_text) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (alarm.time, alarm.label, alarm.days, alarm.sound_file, alarm.active, int(alarm.use_tts or False), alarm.tts_text)
         )
         db.commit()
     return {"status": "ok"}
@@ -442,8 +520,8 @@ def get_events():
 def add_event(event: EventModel):
     with get_db() as db:
         db.execute(
-            "INSERT INTO events (datetime, label, sound_file, notified) VALUES (?, ?, ?, 0)",
-            (event.datetime, event.label, event.sound_file)
+            "INSERT INTO events (datetime, label, sound_file, use_tts, tts_text, notified) VALUES (?, ?, ?, ?, ?, 0)",
+            (event.datetime, event.label, event.sound_file, int(event.use_tts or False), event.tts_text)
         )
         db.commit()
     return {"status": "ok"}
@@ -579,20 +657,17 @@ async def alarm_scheduler():
 
                 print(f"Alarm firing: '{alarm['label']}' at {current_time}")
 
+                use_tts = alarm.get("use_tts", 0)
+                tts_text = alarm.get("tts_text") or alarm.get("label") or "Alarm"
                 sound = alarm.get("sound_file")
                 path  = resolve_sound_path(sound) if sound else None
 
-                if path:
+                if use_tts:
+                    threading.Thread(target=play_tts_bg, args=(tts_text,), daemon=True).start()
+                elif path:
                     threading.Thread(target=play_file_bg, args=(path,), daemon=True).start()
                 else:
-                    # Fallback: speak the label via espeak
-                    label = alarm.get("label") or "Alarm"
-                    def _speak(lbl=label):
-                        subprocess.run(
-                            ["espeak-ng", lbl],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                        )
-                    threading.Thread(target=_speak, daemon=True).start()
+                    threading.Thread(target=play_tts_bg, args=(tts_text,), daemon=True).start()
 
         except Exception as e:
             print(f"Alarm scheduler error: {e}")
@@ -702,6 +777,42 @@ async def daily_prayer_sync():
                                + (60 - now.second))
         await asyncio.sleep(seconds_to_midnight)
         await sync_prayer_times()
+
+async def event_scheduler():
+    """Background task: wakes every minute, fires any due event, plays sound or TTS."""
+    print("Event scheduler started")
+    while True:
+        now = datetime.now()
+        current_minute = now.strftime("%Y-%m-%dT%H:%M")
+        try:
+            with get_db() as db:
+                rows = db.execute(
+                    "SELECT * FROM events WHERE datetime LIKE ? AND notified = 0",
+                    (f"{current_minute}%",)
+                ).fetchall()
+                due = [dict(r) for r in rows]
+
+            for event in due:
+                print(f"Event firing: '{event['label']}'")
+                with get_db() as db:
+                    db.execute("UPDATE events SET notified = 1 WHERE id = ?", (event["id"],))
+                    db.commit()
+
+                use_tts = event.get("use_tts", 0)
+                tts_text = event.get("tts_text") or event.get("label") or "Event"
+                sound = event.get("sound_file")
+                path  = resolve_sound_path(sound) if sound else None
+
+                if use_tts:
+                    threading.Thread(target=play_tts_bg, args=(tts_text,), daemon=True).start()
+                elif path:
+                    threading.Thread(target=play_file_bg, args=(path,), daemon=True).start()
+                else:
+                    threading.Thread(target=play_tts_bg, args=(tts_text,), daemon=True).start()
+        except Exception as e:
+            print(f"Event scheduler error: {e}")
+
+        await asyncio.sleep(60 - datetime.now().second)
 
 
 # ── Prayer API ─────────────────────────────────────────────────────────────────

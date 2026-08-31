@@ -2,13 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Bell, Music, Radio, Sun, Moon, UploadCloud,
   Play, Pause, Mic2, Activity, Volume2, X, Plus,
-  Trash2, CalendarClock, Calendar, Clock, AlarmCheck, RefreshCw
+  Trash2, CalendarClock, Calendar, Clock, AlarmCheck, RefreshCw, Settings,
+  BookOpen, Dumbbell, Gamepad2, Thermometer, Lightbulb, Home, User
 } from 'lucide-react';
 import axios from 'axios';
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 const GlassPanel = ({ children, className = '', onClick }) => (
-  <div onClick={onClick} className={`bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl p-6 ${className}`}>
+  <div
+    onClick={onClick}
+    className={`bg-white/22 backdrop-blur-glass border-[1.5px] border-white/55 shadow-[0_8px_32px_0_rgba(0,31,63,0.25)] rounded-[22px] p-6 text-white transition-all duration-300 ${className}`}
+  >
     {children}
   </div>
 );
@@ -67,8 +71,8 @@ const DayPicker = ({ selected, onChange }) => (
         }}
         className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
           selected.includes(d)
-            ? 'bg-purple-500 border-purple-400 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]'
-            : 'bg-white/5 border-white/10 text-slate-400 hover:border-purple-500/50 hover:text-slate-200'
+            ? 'bg-dory-blue border-dory-blue/50 text-white shadow-[0_0_10px_rgba(13,112,234,0.4)]'
+            : 'bg-white/5 border-white/10 text-slate-300 hover:border-dory-blue/50 hover:text-white'
         }`}
       >
         {d}
@@ -84,10 +88,157 @@ const DayBadges = ({ days }) => {
     <div className="flex gap-0.5 mt-1 flex-wrap">
       {DAYS.map(d => (
         <span key={d} className={`text-[10px] px-1 py-0.5 rounded font-bold ${
-          active.includes(d) ? 'bg-purple-500/30 text-purple-300' : 'text-slate-600'
+          active.includes(d) ? 'bg-dory-blue/30 text-dory-blue font-semibold' : 'text-slate-500'
         }`}>{d.slice(0, 1)}</span>
       ))}
     </div>
+  );
+};
+
+// ── Workout SVG Loop Animations ────────────────────────────────────────────────
+const WorkoutAnimation = ({ exerciseName }) => {
+  const name = exerciseName.toLowerCase();
+  
+  if (name.includes('squat')) {
+    return (
+      <svg viewBox="0 0 100 100" className="w-32 h-32 mx-auto">
+        <style>{`
+          @keyframes squat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(18px); }
+          }
+          .squat-body { animation: squat 2s ease-in-out infinite; }
+        `}</style>
+        <line x1="10" y1="90" x2="90" y2="90" stroke="white" strokeWidth="4" strokeLinecap="round" />
+        <g className="squat-body" stroke="#0D70EA" strokeWidth="6" strokeLinecap="round" fill="none">
+          <circle cx="50" cy="25" r="8" stroke="#FFD13B" fill="#FFD13B" />
+          <line x1="50" y1="33" x2="50" y2="55" />
+          <line x1="50" y1="38" x2="72" y2="38" />
+          <line x1="50" y1="55" x2="35" y2="70" />
+          <line x1="35" y1="70" x2="35" y2="90" />
+        </g>
+      </svg>
+    );
+  }
+  
+  if (name.includes('push-up') || name.includes('pushup') || name.includes('plank') || name.includes('dip')) {
+    const isPlank = name.includes('plank');
+    const isDip = name.includes('dip');
+    return (
+      <svg viewBox="0 0 120 100" className="w-32 h-32 mx-auto">
+        <style>{`
+          @keyframes pushup {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(10px) rotate(-3deg); }
+          }
+          @keyframes plank-shake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(0.5px, -0.5px); }
+            40% { transform: translate(-0.5px, 0.5px); }
+            60% { transform: translate(0.5px, 0.5px); }
+            80% { transform: translate(-0.5px, -0.5px); }
+          }
+          .pushup-body { 
+            animation: ${isPlank ? 'plank-shake 0.1s linear infinite' : 'pushup 2.5s ease-in-out infinite'};
+            transform-origin: ${isDip ? '20px 80px' : '90px 80px'}; 
+          }
+        `}</style>
+        <line x1="10" y1="85" x2="110" y2="85" stroke="white" strokeWidth="4" strokeLinecap="round" />
+        <g className="pushup-body" stroke="#0D70EA" strokeWidth="6" strokeLinecap="round" fill="none">
+          {isDip ? (
+            // Dips animation
+            <>
+              <circle cx="35" cy="30" r="8" stroke="#FFD13B" fill="#FFD13B" />
+              <line x1="35" y1="38" x2="35" y2="65" />
+              <line x1="35" y1="45" x2="55" y2="45" />
+              <line x1="35" y1="65" x2="55" y2="80" />
+            </>
+          ) : (
+            // Pushups/Planks animation
+            <>
+              <circle cx="20" cy="40" r="8" stroke="#FFD13B" fill="#FFD13B" />
+              <line x1="28" y1="45" x2="90" y2="80" />
+              <line x1="90" y1="80" x2="90" y2="85" />
+              {isPlank ? (
+                <>
+                  <line x1="30" y1="48" x2="30" y2="85" />
+                  <line x1="30" y1="85" x2="45" y2="85" />
+                </>
+              ) : (
+                <>
+                  <line x1="30" y1="48" x2="25" y2="65" />
+                  <line x1="25" y1="65" x2="35" y2="85" />
+                </>
+              )}
+            </>
+          )}
+        </g>
+      </svg>
+    );
+  }
+
+  if (name.includes('jumping jack') || name.includes('jack') || name.includes('circle')) {
+    const isCircles = name.includes('circle');
+    return (
+      <svg viewBox="0 0 100 100" className="w-32 h-32 mx-auto">
+        <style>{`
+          @keyframes jack-body {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.96); }
+          }
+          @keyframes jack-limbs {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(20deg); }
+          }
+          @keyframes jack-limbs-opp {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(-20deg); }
+          }
+          @keyframes circle-arms {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .jack-body { animation: jack-body 1s ease-in-out infinite; }
+          .left-arm { animation: ${isCircles ? 'circle-arms 2s linear infinite' : 'jack-limbs 1s ease-in-out infinite'}; transform-origin: 50px 35px; }
+          .right-arm { animation: ${isCircles ? 'circle-arms 2s linear infinite' : 'jack-limbs-opp 1s ease-in-out infinite'}; transform-origin: 50px 35px; }
+          .left-leg { animation: jack-limbs 1s ease-in-out infinite; transform-origin: 50px 60px; }
+          .right-leg { animation: jack-limbs-opp 1s ease-in-out infinite; transform-origin: 50px 60px; }
+        `}</style>
+        <line x1="10" y1="95" x2="90" y2="95" stroke="white" strokeWidth="4" strokeLinecap="round" />
+        <g className="jack-body" stroke="#0D70EA" strokeWidth="6" strokeLinecap="round" fill="none">
+          <circle cx="50" cy="20" r="8" stroke="#FFD13B" fill="#FFD13B" />
+          <line x1="50" y1="28" x2="50" y2="60" />
+          <line className="left-arm" x1="50" y1="35" x2="25" y2="20" />
+          <line className="right-arm" x1="50" y1="35" x2="75" y2="20" />
+          <line className="left-leg" x1="50" y1="60" x2="30" y2="90" />
+          <line className="right-leg" x1="50" y1="60" x2="70" y2="90" />
+        </g>
+      </svg>
+    );
+  }
+
+  // Default animation (High Knees / Running)
+  return (
+    <svg viewBox="0 0 100 100" className="w-32 h-32 mx-auto">
+      <style>{`
+        @keyframes bounce-run {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        .run-body { animation: bounce-run 0.8s ease-in-out infinite; }
+      `}</style>
+      <line x1="10" y1="90" x2="90" y2="90" stroke="white" strokeWidth="4" strokeLinecap="round" />
+      <g className="run-body" stroke="#0D70EA" strokeWidth="6" strokeLinecap="round" fill="none">
+        <circle cx="50" cy="20" r="8" stroke="#FFD13B" fill="#FFD13B" />
+        <line x1="50" y1="28" x2="50" y2="58" />
+        <line x1="50" y1="35" x2="30" y2="45" />
+        <line x1="50" y1="35" x2="70" y2="40" />
+        <line x1="50" y1="58" x2="38" y2="75" />
+        <line x1="38" y1="75" x2="48" y2="90" />
+        <line x1="50" y1="58" x2="62" y2="75" />
+        <line x1="62" y1="75" x2="55" y2="90" />
+      </g>
+    </svg>
   );
 };
 
@@ -103,15 +254,27 @@ function App() {
   const [musicFiles, setMusicFiles] = useState([]);
 
   const [leftTab, setLeftTab] = useState('alarms');
+  const [activeTab, setActiveTab] = useState('home'); // Dory theme defaults to home
 
   const [isAlarmModalOpen, setAlarmModalOpen] = useState(false);
   const [isEventModalOpen, setEventModalOpen] = useState(false);
 
-  // Alarm form state
+  // Alarm/Event state
   const [alarmDays, setAlarmDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+  const [eventForm, setEventForm] = useState({ date: '', time: '', label: '', sound_file: '', use_tts: false, tts_text: '' });
 
-  // Event form state
-  const [eventForm, setEventForm] = useState({ date: '', time: '', label: '', sound_file: '' });
+  // Dory Smart Lights State
+  const [lights, setLights] = useState({ livingRoom: false, kitchen: false });
+
+  // Downloader Status state
+  const [downloadStatus, setDownloadStatus] = useState({
+    status: 'idle',
+    progress: 0,
+    current_file: null,
+    downloaded_files: [],
+    total_files: 6,
+    errors: []
+  });
 
   // Prayer times from backend
   const [prayers, setPrayers] = useState({});
@@ -120,13 +283,46 @@ function App() {
   const [songs, setSongs] = useState([]);
   const [selectedSong, setSelectedSong] = useState('');
   const [isSongPlaying, setIsSongPlaying] = useState(false);
+  const [selectedDhikr, setSelectedDhikr] = useState('');
+  const [isDhikrPlaying, setIsDhikrPlaying] = useState(false);
+  const [workoutStatus, setWorkoutStatus] = useState('idle'); // idle | active | rest | completed
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [workoutTimer, setWorkoutTimer] = useState(0);
+  const [workoutCategory, setWorkoutCategory] = useState('All'); // All | Upper | Lower | Core | Cardio
+  const workoutIntervalRef = useRef(null);
+  
+  // Kids Corner states
+  const [kidsGame, setKidsGame] = useState(null); // null | math | memory | paint | phonics
+  const [mathState, setMathState] = useState({ num1: 0, num2: 0, options: [], answer: 0, score: 0, total: 0 });
+  const [memoryCards, setMemoryCards] = useState([]);
+  const [selectedCards, setSelectedCards] = useState([]);
+  const [memoryMoves, setMemoryMoves] = useState(0);
+  const [paintColor, setPaintColor] = useState('#8b5cf6');
+  const [paintBrushSize, setPaintBrushSize] = useState(5);
+
   const [isSyncingMawaqit, setIsSyncingMawaqit] = useState(false);
   const [volume, setVolume] = useState(50);
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedMosque, setSelectedMosque] = useState(null);
+  const [adhanSettings, setAdhanSettings] = useState({
+    Fajr: '', Dhuhr: '', Asr: '', Maghrib: '', Isha: ''
+  });
+  const [isMosqueModalOpen, setMosqueModalOpen] = useState(false);
 
   // Toast state
   const [activeToast, setActiveToast] = useState(null);
 
   const fileInputRef = useRef(null);
+  
+  // Voice Recorder state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioBlobUrl, setAudioBlobUrl] = useState('');
+  const [recordingName, setRecordingName] = useState('');
+  const [isSavingRecording, setIsSavingRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingIntervalRef = useRef(null);
 
   const radioStations = [
     { name: 'Quran Kareem Radio (Cairo)', location: 'Cairo, Egypt', url: 'https://n03.radiojar.com/8s5u5tpdtwzuv' },
@@ -170,6 +366,7 @@ function App() {
     fetchSongs();
     fetchVolume();
     fetchPrayers();
+    fetchMawaqitSettings();
   }, [time.getDate()]);
 
   // ── Events due polling (every 30s) ──────────────────────────────────────────
@@ -333,6 +530,316 @@ function App() {
     } catch { }
   };
 
+  const startRecording = async () => {
+    setAudioBlobUrl('');
+    setRecordingName('');
+    audioChunksRef.current = [];
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setAudioBlobUrl(audioUrl);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(t => t + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      alert('Microphone access denied or not supported on this browser/device.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(recordingIntervalRef.current);
+    }
+  };
+
+  const saveRecording = async () => {
+    if (audioChunksRef.current.length === 0) return;
+    setIsSavingRecording(true);
+    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    const filename = (recordingName.trim() || `recording_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_') + '.webm';
+    
+    const fd = new FormData();
+    fd.append('file', audioBlob, filename);
+    try {
+      await axios.post('/api/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setAudioBlobUrl('');
+      setRecordingName('');
+      alert('Recording saved to library!');
+      fetchMusic();
+      fetchSongs();
+    } catch (err) {
+      console.error('Save recording failed', err);
+      alert('Failed to save voice recording.');
+    }
+    setIsSavingRecording(false);
+  };
+
+  const [isDownloadingResources, setIsDownloadingResources] = useState(false);
+  const downloadIntervalRef = useRef(null);
+
+  const fetchDownloadStatus = async () => {
+    try {
+      const res = await axios.get('/api/download_status');
+      setDownloadStatus(res.data);
+      if (res.data.status === 'completed' || res.data.status === 'failed') {
+        clearInterval(downloadIntervalRef.current);
+        setIsDownloadingResources(false);
+        fetchMusic();
+        fetchSongs();
+      } else if (res.data.status === 'downloading') {
+        setIsDownloadingResources(true);
+      }
+    } catch (err) {
+      console.error('Failed to fetch download status', err);
+    }
+  };
+
+  const downloadResources = async () => {
+    setIsDownloadingResources(true);
+    try {
+      await axios.post('/api/download_resources');
+      clearInterval(downloadIntervalRef.current);
+      downloadIntervalRef.current = setInterval(fetchDownloadStatus, 2000);
+    } catch (err) {
+      console.error('Failed to trigger download', err);
+      alert('Failed to start download.');
+      setIsDownloadingResources(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDownloadStatus();
+    const checkOnMount = async () => {
+      try {
+        const res = await axios.get('/api/download_status');
+        if (res.data.status === 'downloading') {
+          setIsDownloadingResources(true);
+          downloadIntervalRef.current = setInterval(fetchDownloadStatus, 2000);
+        }
+      } catch {}
+    };
+    checkOnMount();
+    return () => clearInterval(downloadIntervalRef.current);
+  }, []);
+
+  const workouts = {
+    Upper: [
+      { name: 'Push-ups', duration: 30, desc: 'Keep your back straight and push up from the floor.', muscles: 'Chest, Arms' },
+      { name: 'Tricep Dips', duration: 30, desc: 'Use a chair or bench to dip and lift your hips.', muscles: 'Triceps, Shoulders' },
+      { name: 'Arm Circles', duration: 30, desc: 'Extend arms straight out and spin in small circles.', muscles: 'Shoulders' }
+    ],
+    Lower: [
+      { name: 'Bodyweight Squats', duration: 30, desc: 'Lower your hips back and down, keep chest up.', muscles: 'Quads, Glutes' },
+      { name: 'Lunges', duration: 30, desc: 'Step forward and bend both knees to 90 degrees.', muscles: 'Hamstrings, Calves' },
+      { name: 'Glute Bridges', duration: 30, desc: 'Lie on your back, raise hips towards ceiling.', muscles: 'Glutes, Lower Back' }
+    ],
+    Core: [
+      { name: 'Abdominal Crunches', duration: 30, desc: 'Curl shoulders up, keeping lower back on floor.', muscles: 'Abs' },
+      { name: 'Forearm Plank', duration: 30, desc: 'Hold straight body line resting on elbows.', muscles: 'Core' },
+      { name: 'Russian Twists', duration: 30, desc: 'Sit and twist torso side to side, optional lift feet.', muscles: 'Obliques' }
+    ],
+    Cardio: [
+      { name: 'Jumping Jacks', duration: 30, desc: 'Jump feet out and raise hands, then return.', muscles: 'Cardio, Full Body' },
+      { name: 'High Knees', duration: 30, desc: 'Run in place bringing knees up to hip height.', muscles: 'Cardio, Legs' },
+      { name: 'Burpees', duration: 40, desc: 'Squat, kick back, push up, jump up to clap.', muscles: 'Cardio, Strength' }
+    ]
+  };
+
+  const getActiveWorkouts = () => {
+    if (workoutCategory === 'All') {
+      return [...workouts.Upper, ...workouts.Lower, ...workouts.Core, ...workouts.Cardio];
+    }
+    return workouts[workoutCategory] || [];
+  };
+
+  const speakAlert = async (text) => {
+    try {
+      await axios.post('/api/tts', { text });
+    } catch (e) {
+      console.error('TTS Alert failed:', e);
+    }
+  };
+
+  const startWorkout = () => {
+    const list = getActiveWorkouts();
+    if (list.length === 0) return;
+    clearInterval(workoutIntervalRef.current);
+    
+    setWorkoutStatus('active');
+    setCurrentExerciseIndex(0);
+    const firstEx = list[0];
+    setWorkoutTimer(firstEx.duration);
+    speakAlert(`Starting workout category ${workoutCategory}. First exercise is ${firstEx.name}. Go!`);
+
+    workoutIntervalRef.current = setInterval(() => {
+      setWorkoutTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(workoutIntervalRef.current);
+          handleWorkoutTransition();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleWorkoutTransition = () => {
+    const list = getActiveWorkouts();
+    const isLast = currentExerciseIndex >= list.length - 1;
+    if (isLast) {
+      setWorkoutStatus('completed');
+      speakAlert('Workout complete! Excellent job!');
+    } else {
+      setWorkoutStatus('rest');
+      setWorkoutTimer(15);
+      speakAlert(`Rest for 15 seconds. Next up is ${list[currentExerciseIndex + 1].name}`);
+      
+      workoutIntervalRef.current = setInterval(() => {
+        setWorkoutTimer(p => {
+          if (p <= 1) {
+            clearInterval(workoutIntervalRef.current);
+            // Switch to next active exercise
+            setWorkoutStatus('active');
+            const nextIndex = currentExerciseIndex + 1;
+            setCurrentExerciseIndex(nextIndex);
+            const nextEx = list[nextIndex];
+            setWorkoutTimer(nextEx.duration);
+            speakAlert(`Starting ${nextEx.name}. Go!`);
+            
+            // Restart interval
+            workoutIntervalRef.current = setInterval(() => {
+              setWorkoutTimer(t => {
+                if (t <= 1) {
+                  clearInterval(workoutIntervalRef.current);
+                  handleWorkoutTransition();
+                  return 0;
+                }
+                return t - 1;
+              });
+            }, 1000);
+            return 0;
+          }
+          return p - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const pauseWorkout = () => {
+    clearInterval(workoutIntervalRef.current);
+    setWorkoutStatus('idle');
+  };
+
+  const resetWorkout = () => {
+    clearInterval(workoutIntervalRef.current);
+    setWorkoutStatus('idle');
+    setCurrentExerciseIndex(0);
+    setWorkoutTimer(0);
+  };
+
+  // Kids Corner handlers
+  const startMathQuiz = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    const answer = num1 + num2;
+    const options = new Set([answer]);
+    while (options.size < 4) {
+      options.add(Math.floor(Math.random() * 20) + 1);
+    }
+    setMathState(prev => ({
+      ...prev,
+      num1,
+      num2,
+      answer,
+      options: Array.from(options).sort(() => Math.random() - 0.5)
+    }));
+  };
+
+  const answerMath = (selected) => {
+    const isCorrect = selected === mathState.answer;
+    if (isCorrect) {
+      speakAlert('Correct! Well done!');
+      setMathState(prev => ({ ...prev, score: prev.score + 1, total: prev.total + 1 }));
+    } else {
+      speakAlert(`Incorrect. The correct answer was ${mathState.answer}`);
+      setMathState(prev => ({ ...prev, total: prev.total + 1 }));
+    }
+    setTimeout(startMathQuiz, 1500);
+  };
+
+  const memoryEmojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+  const startMemoryGame = () => {
+    const doubled = [...memoryEmojis, ...memoryEmojis].map((e, idx) => ({
+      id: idx,
+      emoji: e,
+      isFlipped: false,
+      isMatched: false
+    }));
+    setMemoryCards(doubled.sort(() => Math.random() - 0.5));
+    setSelectedCards([]);
+    setMemoryMoves(0);
+  };
+
+  const handleCardClick = (card) => {
+    if (card.isFlipped || card.isMatched || selectedCards.length >= 2) return;
+
+    const updated = memoryCards.map(c => c.id === card.id ? { ...c, isFlipped: true } : c);
+    setMemoryCards(updated);
+
+    const newSelected = [...selectedCards, card];
+    setSelectedCards(newSelected);
+
+    if (newSelected.length === 2) {
+      setMemoryMoves(m => m + 1);
+      const [c1, c2] = newSelected;
+      if (c1.emoji === c2.emoji) {
+        setTimeout(() => {
+          setMemoryCards(prev => prev.map(c => (c.id === c1.id || c.id === c2.id) ? { ...c, isMatched: true } : c));
+          setSelectedCards([]);
+          speakAlert('Match found!');
+        }, 600);
+      } else {
+        setTimeout(() => {
+          setMemoryCards(prev => prev.map(c => (c.id === c1.id || c.id === c2.id) ? { ...c, isFlipped: false } : c));
+          setSelectedCards([]);
+        }, 1200);
+      }
+    }
+  };
+
+  const triggerPhonics = (letter) => {
+    const words = {
+      A: 'A is for Apple', B: 'B is for Balloon', C: 'C is for Cat', D: 'D is for Dog',
+      E: 'E is for Elephant', F: 'F is for Fish', G: 'G is for Grapes', H: 'H is for Horse',
+      I: 'I is for Igloo', J: 'J is for Jellyfish', K: 'K is for Kangaroo', L: 'L is for Lion',
+      M: 'M is for Monkey', N: 'N is for Nest', O: 'O is for Orange', P: 'P is for Penguin',
+      Q: 'Q is for Queen', R: 'R is for Rainbow', S: 'S is for Sun', T: 'T is for Tiger',
+      U: 'U is for Umbrella', V: 'V is for Violin', W: 'W is for Watermelon', X: 'X is for Xylophone',
+      Y: 'Y is for Yak', Z: 'Z is for Zebra'
+    };
+    speakAlert(words[letter] || `${letter}`);
+  };
+
   const nextRadio = () => { setRadioIndex(p => (p + 1) % radioStations.length); setIsPlaying(false); };
   const prevRadio = () => { setRadioIndex(p => (p - 1 + radioStations.length) % radioStations.length); setIsPlaying(false); };
 
@@ -359,6 +866,8 @@ function App() {
         days: alarmDays.join(','),
         sound_file: fd.get('sound_file') || null,
         active: true,
+        use_tts: fd.get('use_tts') === 'true',
+        tts_text: fd.get('tts_text') || null,
       });
       setAlarmModalOpen(false);
       setAlarmDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
@@ -377,9 +886,11 @@ function App() {
         datetime: dt,
         label: eventForm.label,
         sound_file: eventForm.sound_file || null,
+        use_tts: eventForm.use_tts || false,
+        tts_text: eventForm.tts_text || null,
       });
       setEventModalOpen(false);
-      setEventForm({ date: '', time: '', label: '', sound_file: '' });
+      setEventForm({ date: '', time: '', label: '', sound_file: '', use_tts: false, tts_text: '' });
       fetchEvents();
     } catch (err) {
       console.error('Save event failed:', err.response?.status, err.response?.data || err.message);
@@ -398,15 +909,1048 @@ function App() {
     } catch { return dt; }
   };
 
+  const renderDashboard = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full w-full items-stretch">
+      {/* Left Column (Span 3) */}
+      <div className="lg:col-span-3 flex flex-col gap-6">
+        {/* Room Temperature Widget */}
+        <GlassPanel className="flex items-center gap-4 border border-dory-blue/20">
+          <div className="p-4 bg-dory-blue/20 rounded-2xl border border-dory-blue/30 text-dory-blue">
+            <Thermometer className="w-10 h-10 animate-pulse" />
+          </div>
+          <div className="text-left">
+            <h4 className="text-sm font-bold text-slate-300">Room Temp</h4>
+            <p className="text-4xl font-black text-white">22°C</p>
+          </div>
+        </GlassPanel>
+
+        {/* Family Calendar / Schedule list */}
+        <GlassPanel className="flex-grow flex flex-col border border-dory-blue/20 max-h-[48vh] overflow-hidden">
+          <h3 className="text-lg font-bold flex items-center gap-2 mb-3 text-left">
+            <Calendar className="w-4 h-4 text-dory-yellow" /> Family Schedule
+          </h3>
+          <div className="space-y-3 flex-grow overflow-y-auto pr-1 text-left">
+            {events.filter(e => !e.notified).length === 0 && (
+              <p className="text-xs text-slate-500 py-6 text-center">No upcoming events scheduled.</p>
+            )}
+            {events.filter(e => !e.notified).map(evt => (
+              <div key={evt.id} className="p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
+                <div className="flex justify-between items-center text-dory-yellow font-bold mb-1">
+                  <span>{formatEventDatetime(evt.datetime)}</span>
+                </div>
+                <p className="font-semibold text-white truncate">{evt.label}</p>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+      </div>
+
+      {/* Center Hero Column (Span 6) */}
+      <div className="lg:col-span-6 flex flex-col gap-6">
+        {/* Framed Cartoon Portrait centerpiece */}
+        <GlassPanel className="flex-grow flex flex-col items-center justify-center p-5 border-[3px] border-reef-coral/80 relative overflow-hidden bg-cover bg-center rounded-[32px] min-h-[300px]">
+          {/* Overlay to darken slightly for readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10 z-0" />
+          
+          {/* Main cartoon portrait image loaded from Nabd.jpg */}
+          <img
+            src="/Nabd.jpg"
+            alt="Family Portrait centerpiece"
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          />
+
+          <div className="relative z-10 mt-auto text-center">
+            <h2 className="text-4xl font-black text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              Dory - Family Hub
+            </h2>
+            <p className="text-sm text-ice-blue font-semibold mt-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+              {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+        </GlassPanel>
+
+        {/* Media Control Player */}
+        <GlassPanel className="flex flex-col border border-dory-blue/20">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
+              <div className="p-3 bg-dory-yellow/20 rounded-2xl text-dory-yellow flex-shrink-0 animate-spin-slow">
+                <Music className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest text-[10px]">Now Playing</h4>
+                <p className="text-base font-bold text-white truncate">{isPlaying ? currentRadio.name : (isSongPlaying ? selectedSong : 'No media playing')}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={isPlaying ? handlePlayToggle : (selectedSong ? handleSongPlayToggle : null)}
+                className="p-4 bg-dory-blue text-white rounded-full hover:bg-dory-blue/80 transition-colors shadow-lg"
+              >
+                {(isPlaying || isSongPlaying) ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current translate-x-0.5" />}
+              </button>
+            </div>
+          </div>
+        </GlassPanel>
+      </div>
+
+      {/* Right Column (Span 3) */}
+      <div className="lg:col-span-3 flex flex-col gap-6">
+        {/* User Profile tile */}
+        <GlassPanel className="flex items-center gap-3 border border-dory-blue/20">
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-dory-yellow flex-shrink-0 bg-cover bg-center" style={{ backgroundImage: 'url("/Nabd.jpg")' }} />
+          <div className="text-left">
+            <h4 className="text-xs font-bold text-slate-400">Active Profile</h4>
+            <p className="text-base font-bold text-white truncate">Dory Family</p>
+          </div>
+        </GlassPanel>
+
+        {/* Smart Lights IoT Control */}
+        <GlassPanel className="flex flex-col border border-dory-blue/20 text-left">
+          <h3 className="text-lg font-bold flex items-center gap-2 mb-3">
+            <Lightbulb className="w-4 h-4 text-dory-yellow" /> Smart Lights
+          </h3>
+          <div className="space-y-3">
+            {[
+              { id: 'livingRoom', label: 'Living Room' },
+              { id: 'kitchen', label: 'Kitchen' }
+            ].map(l => (
+              <div key={l.id} className="flex justify-between items-center p-3 bg-white/5 rounded-2xl border border-white/5">
+                <span className="text-sm font-semibold">{l.label}</span>
+                <button
+                  onClick={() => setLights({ ...lights, [l.id]: !lights[l.id] })}
+                  className={`w-12 h-6 rounded-full relative transition-all duration-300 border ${
+                    lights[l.id] ? 'bg-[#2ECC71] border-[#2ECC71]' : 'bg-slate-700 border-transparent'
+                  }`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow ${lights[l.id] ? 'right-0.5' : 'left-0.5'}`} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+
+        {/* Quick Photo Album Previews */}
+        <GlassPanel className="flex-grow flex flex-col border border-dory-blue/20 text-left max-h-[25vh] overflow-hidden">
+          <h3 className="text-sm font-bold text-slate-300 mb-2">Photo Previews</h3>
+          <div className="grid grid-cols-2 gap-2 flex-grow overflow-hidden">
+            <div className="bg-cover bg-center rounded-xl border border-white/10 shadow" style={{ backgroundImage: 'url("/Nabd.jpg")' }} />
+            <div className="bg-cover bg-center rounded-xl border border-white/10 shadow" style={{ backgroundImage: 'url("/QR.png")' }} />
+          </div>
+        </GlassPanel>
+      </div>
+    </div>
+  );
+
+  const renderReminders = () => (
+    <div className="flex-grow flex flex-col gap-6 w-full">
+      <div className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-2xl">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setLeftTab('alarms')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              leftTab === 'alarms'
+                ? 'bg-purple-500/30 text-purple-300 border border-purple-500/40 shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Bell className="w-4 h-4" /> Alarms
+          </button>
+          <button
+            onClick={() => setLeftTab('events')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              leftTab === 'events'
+                ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40 shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CalendarClock className="w-4 h-4" /> Events
+          </button>
+        </div>
+        <button
+          onClick={() => leftTab === 'alarms' ? setAlarmModalOpen(true) : setEventModalOpen(true)}
+          className="text-sm bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-xl text-white font-bold transition-all shadow flex items-center gap-1.5"
+        >
+          <Plus className="w-4 h-4" /> Add {leftTab === 'alarms' ? 'Alarm' : 'Event'}
+        </button>
+      </div>
+
+      {leftTab === 'alarms' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[70vh] w-full">
+          {alarms.length === 0 && (
+            <div className="col-span-full text-center py-16 text-slate-500">
+              <AlarmCheck className="w-16 h-16 mx-auto mb-4 opacity-40 text-purple-400" />
+              <p className="text-lg font-bold">No Alarms Set</p>
+              <p className="text-sm">Click "Add Alarm" to create one.</p>
+            </div>
+          )}
+          {alarms.map(alarm => (
+            <div
+              key={alarm.id}
+              className={`bg-white/5 p-5 rounded-3xl border transition-all ${
+                alarm.active ? 'border-purple-500/50' : 'border-white/5 opacity-55'
+              }`}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-3xl font-black tracking-tight">{alarm.time}</h4>
+                    {alarm.use_tts ? (
+                      <span className="text-[10px] bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">🗣 TTS</span>
+                    ) : alarm.sound_file ? (
+                      <Music className="w-3.5 h-3.5 text-purple-400" />
+                    ) : null}
+                  </div>
+                  <p className="text-sm text-slate-300 font-semibold mt-1">{alarm.label}</p>
+                  {alarm.use_tts && alarm.tts_text && (
+                    <p className="text-xs text-slate-400 italic mt-1 font-mono truncate max-w-[200px]">"{alarm.tts_text}"</p>
+                  )}
+                  {alarm.sound_file && (
+                    <p className="text-xs text-purple-300 mt-1 truncate max-w-[200px]">🎵 {alarm.sound_file.split('/').pop()}</p>
+                  )}
+                  <DayBadges days={alarm.days} />
+                </div>
+                <div className="flex flex-col items-end gap-4">
+                  <div
+                    onClick={() => toggleAlarm(alarm.id)}
+                    className={`w-11 h-6 ${alarm.active ? 'bg-purple-500' : 'bg-slate-700'} rounded-full relative cursor-pointer transition-colors`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow ${alarm.active ? 'right-1' : 'left-1'}`} />
+                  </div>
+                  <button onClick={() => deleteAlarm(alarm.id)} className="text-sm text-red-400 hover:text-red-300 flex items-center gap-1 font-bold">
+                    <Trash2 className="w-4 h-4" /> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[70vh] w-full">
+          {events.length === 0 && (
+            <div className="col-span-full text-center py-16 text-slate-500">
+              <Calendar className="w-16 h-16 mx-auto mb-4 opacity-40 text-amber-400" />
+              <p className="text-lg font-bold">No Events Scheduled</p>
+              <p className="text-sm">Click "Add Event" to create one.</p>
+            </div>
+          )}
+          {events.map(evt => (
+            <div key={evt.id} className={`bg-white/5 p-5 rounded-3xl border transition-all ${
+              evt.notified ? 'border-white/5 opacity-55' : 'border-amber-500/30'
+            }`}>
+              <div className="flex justify-between items-start">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-bold text-amber-300">
+                      {formatEventDatetime(evt.datetime)}
+                    </span>
+                    {evt.notified && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">Done</span>
+                    )}
+                    {evt.use_tts && (
+                      <span className="text-[10px] bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded-full">🗣 TTS</span>
+                    )}
+                  </div>
+                  <p className="text-base text-white font-semibold truncate">{evt.label}</p>
+                  {evt.use_tts && evt.tts_text && (
+                    <p className="text-xs text-slate-400 italic mt-1 font-mono truncate">"{evt.tts_text}"</p>
+                  )}
+                  {evt.sound_file && (
+                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-1 truncate">
+                      <Music className="w-3.5 h-3.5" /> {evt.sound_file.split('/').pop()}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => deleteEvent(evt.id)} className="text-sm text-red-400 hover:text-red-300 ml-4 font-bold flex items-center gap-1">
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderMedia = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-grow overflow-y-auto max-h-[80vh] pr-2 w-full">
+      {/* Web Radio Station List */}
+      <GlassPanel className="flex flex-col border border-blue-500/20">
+        <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+          <Radio className="w-5 h-5 text-blue-400" /> Live Web Radio
+        </h3>
+        <div className="space-y-3 flex-grow overflow-y-auto max-h-60 mb-4 bg-black/20 p-2 rounded-2xl border border-white/5">
+          {radioStations.map((station, idx) => (
+            <button
+              key={station.name}
+              onClick={() => { setRadioIndex(idx); setIsPlaying(false); }}
+              className={`w-full text-left p-3 rounded-xl transition-all border flex justify-between items-center ${
+                radioIndex === idx
+                  ? 'bg-blue-600/35 border-blue-500/50 text-white'
+                  : 'bg-white/5 border-transparent text-slate-300 hover:bg-white/10'
+              }`}
+            >
+              <div>
+                <p className="font-bold text-sm">{station.name}</p>
+                <p className="text-xs text-slate-400">{station.location}</p>
+              </div>
+              {radioIndex === idx && isPlaying && (
+                <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="bg-black/20 p-4 rounded-2xl border border-white/5 text-center flex flex-col justify-center mb-4">
+          <p className="text-xs text-blue-400 font-bold uppercase tracking-wider">Now Tuning</p>
+          <h4 className="font-bold text-base truncate mt-1">{currentRadio.name}</h4>
+        </div>
+        <div className="flex justify-center">
+          <button
+            onClick={handlePlayToggle}
+            className={`p-4 rounded-full transition-all border shadow-lg transform hover:-translate-y-0.5 text-white flex items-center justify-center w-[60px] h-[60px] ${isPlaying ? 'bg-indigo-600 border-indigo-400' : 'bg-blue-600 border-blue-400'}`}
+          >
+            {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-0.5" />}
+          </button>
+        </div>
+      </GlassPanel>
+
+      {/* Songs Library */}
+      <GlassPanel className="flex flex-col border border-purple-500/20">
+        <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+          <Music className="w-5 h-5 text-purple-400" /> Songs Library
+        </h3>
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Select Track</label>
+            <select
+              value={selectedSong}
+              onChange={e => { setSelectedSong(e.target.value); setIsSongPlaying(false); }}
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-white text-sm focus:border-purple-500"
+            >
+              {songs.map(s => <option key={s} value={s}>{s}</option>)}
+              {songs.length === 0 && <option value="">No songs found</option>}
+            </select>
+          </div>
+          <div className="flex justify-between items-center bg-black/20 p-2.5 rounded-2xl border border-white/5">
+            <button
+              onClick={handleSongPlayToggle}
+              disabled={!selectedSong}
+              className={`p-3 rounded-full transition-all flex items-center justify-center ${isSongPlaying ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:text-white'}`}
+            >
+              {isSongPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current translate-x-0.5" />}
+            </button>
+            {isSongPlaying && (
+              <div className="flex gap-1 pr-4">
+                {[0, 150, 300].map(d => (
+                  <span key={d} className="w-1 bg-purple-500 rounded-full animate-bounce" style={{ height: `${12 + d / 30}px`, animationDelay: `${d}ms` }} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="mt-6">
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".mp3,.wav" />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 p-3 bg-white/5 border border-dashed border-white/20 rounded-2xl hover:border-purple-500 hover:bg-purple-500/5 transition-all text-sm font-bold text-slate-300"
+          >
+            <UploadCloud className="w-4 h-4 text-purple-400" /> Upload Local MP3s
+          </button>
+        </div>
+      </GlassPanel>
+
+      {/* Voice Recorder (col-span-full) */}
+      <GlassPanel className="lg:col-span-2 flex flex-col border border-indigo-500/20">
+        <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+          <Mic2 className="w-5 h-5 text-indigo-400" /> Voice Recording Studio
+        </h3>
+        <div className="flex flex-col sm:flex-row gap-6 items-center justify-around bg-black/20 p-5 rounded-3xl border border-white/5">
+          <div className="flex flex-col items-center gap-2">
+            {isRecording ? (
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="w-16 h-16 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all animate-pulse"
+              >
+                <div className="w-6 h-6 bg-white rounded" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={startRecording}
+                className="w-16 h-16 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all"
+              >
+                <Mic2 className="w-7 h-7" />
+              </button>
+            )}
+            <span className="text-xs font-bold text-slate-400">
+              {isRecording ? `Recording... (${recordingTime}s)` : 'Tap to Record'}
+            </span>
+          </div>
+
+          {audioBlobUrl && (
+            <div className="flex-1 max-w-sm space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 w-full">
+              <audio src={audioBlobUrl} controls className="w-full h-8" />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Give it a name"
+                  value={recordingName}
+                  onChange={e => setRecordingName(e.target.value)}
+                  className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={saveRecording}
+                  disabled={isSavingRecording}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs disabled:opacity-50"
+                >
+                  {isSavingRecording ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </GlassPanel>
+    </div>
+  );
+
+  const handleDhikrPlayToggle = async (file) => {
+    const isSame = selectedDhikr === file;
+    const nextPlaying = isSame ? !isDhikrPlaying : true;
+    
+    setSelectedDhikr(file);
+    setIsDhikrPlaying(nextPlaying);
+    
+    try {
+      await axios.post('/api/songs/play', { 
+        filename: file, 
+        action: nextPlaying ? 'play' : 'pause' 
+      });
+    } catch { }
+  };
+
+  const renderDhikr = () => {
+    const adhkarFiles = musicFiles.filter(f => f.startsWith('Adhkar/'));
+    const hadithFiles = musicFiles.filter(f => f.startsWith('Hadith/'));
+
+    const expectedFiles = [
+      { category: 'Adhkar', name: 'Morning_Adhkar.mp3', label: 'Morning Adhkar' },
+      { category: 'Adhkar', name: 'Evening_Adhkar.mp3', label: 'Evening Adhkar' },
+      { category: 'Adhkar', name: 'Before_Sleep.mp3', label: 'Sleep Supplications' },
+      { category: 'Hadith', name: 'Hadith_1.mp3', label: 'Nawawi Hadith 1' },
+      { category: 'Hadith', name: 'Hadith_2.mp3', label: 'Nawawi Hadith 2' },
+      { category: 'Hadith', name: 'Hadith_3.mp3', label: 'Nawawi Hadith 3' },
+    ];
+
+    const isDone = (filename) => {
+      return musicFiles.some(f => f.split('/').pop() === filename) || 
+             downloadStatus.downloaded_files.includes(filename);
+    };
+
+    return (
+      <div className="flex flex-col gap-6 w-full h-full max-h-[80vh] overflow-y-auto pr-1">
+        {/* Downloader HUD */}
+        <GlassPanel className="border border-dory-blue/20">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-left">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <span>📥</span> Audio Resources Manager
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">Download and manage your Adhkar and Hadith offline libraries.</p>
+            </div>
+            <button
+              onClick={downloadResources}
+              disabled={isDownloadingResources}
+              className={`text-sm font-bold px-6 py-2.5 rounded-full shadow transition-all ${
+                isDownloadingResources
+                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  : 'bg-dory-blue text-white hover:bg-dory-blue/80'
+              }`}
+            >
+              {isDownloadingResources ? 'Downloading...' : 'Download Library'}
+            </button>
+          </div>
+
+          {/* Progress bar */}
+          {(isDownloadingResources || downloadStatus.status === 'downloading') && (
+            <div className="mt-6 bg-black/30 p-5 rounded-[22px] border border-white/5 text-left">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-bold text-dory-yellow truncate max-w-[250px]">
+                  {downloadStatus.status === 'downloading' ? `Downloading: ${downloadStatus.current_file || 'Waiting...'}` : 'Completed'}
+                </span>
+                <span className="text-sm font-black text-white">{downloadStatus.progress}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-dory-yellow h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${downloadStatus.progress}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                {expectedFiles.map(f => {
+                  const done = isDone(f.name);
+                  return (
+                    <div key={f.name} className="flex items-center gap-2 text-xs">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
+                        done ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-700 text-slate-400'
+                      }`}>
+                        {done ? '✓' : '○'}
+                      </span>
+                      <span className={done ? 'text-slate-200' : 'text-slate-500'}>{f.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </GlassPanel>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+          {/* Adhkar Section */}
+          <GlassPanel className="flex flex-col border border-dory-blue/20">
+            <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-left">
+              <span className="text-2xl">🤲</span> Fortress of the Muslim (Adhkar)
+            </h3>
+            <div className="space-y-2 flex-grow overflow-y-auto max-h-60 bg-black/20 p-2.5 rounded-[22px] border border-white/5">
+              {adhkarFiles.length === 0 && (
+                <p className="text-xs text-slate-500 text-center py-8">Library empty. Click "Download Library" to download audio packs.</p>
+              )}
+              {adhkarFiles.map(f => {
+                const name = f.split('/').pop().replace('.mp3', '').replace(/_/g, ' ');
+                const isCurrent = selectedDhikr === f;
+                return (
+                  <div key={f} className="flex justify-between items-center p-2.5 rounded-xl bg-white/5 border border-transparent hover:border-dory-blue/20 transition-all">
+                    <span className="text-xs font-semibold text-slate-300 truncate max-w-[200px]">{name}</span>
+                    <button
+                      onClick={() => handleDhikrPlayToggle(f)}
+                      className={`p-2 rounded-full transition-colors ${
+                        isCurrent && isDhikrPlaying ? 'bg-dory-blue text-white' : 'bg-slate-700 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      {isCurrent && isDhikrPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current translate-x-0.5" />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </GlassPanel>
+
+          {/* Hadith Section */}
+          <GlassPanel className="flex flex-col border border-reef-coral/20">
+            <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-left">
+              <BookOpen className="w-5 h-5 text-reef-coral" /> An-Nawawi's 40 Hadith
+            </h3>
+            <div className="space-y-2 flex-grow overflow-y-auto max-h-60 bg-black/20 p-2.5 rounded-[22px] border border-white/5">
+              {hadithFiles.length === 0 && (
+                <p className="text-xs text-slate-500 text-center py-8">Library empty. Download using button on the left.</p>
+              )}
+              {hadithFiles.map(f => {
+                const name = f.split('/').pop().replace('.mp3', '').replace(/_/g, ' ');
+                const isCurrent = selectedDhikr === f;
+                return (
+                  <div key={f} className="flex justify-between items-center p-2.5 rounded-xl bg-white/5 border border-transparent hover:border-reef-coral/20 transition-all">
+                    <span className="text-xs font-semibold text-slate-300 truncate max-w-[200px]">{name}</span>
+                    <button
+                      onClick={() => handleDhikrPlayToggle(f)}
+                      className={`p-2 rounded-full transition-colors ${
+                        isCurrent && isDhikrPlaying ? 'bg-reef-coral text-white' : 'bg-slate-700 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      {isCurrent && isDhikrPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current translate-x-0.5" />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </GlassPanel>
+        </div>
+      </div>
+    );
+  };
+
+  const renderWorkout = () => {
+    const list = getActiveWorkouts();
+    const activeEx = list[currentExerciseIndex];
+
+    return (
+      <div className="flex-grow flex flex-col gap-6 w-full">
+        {workoutStatus === 'idle' || workoutStatus === 'completed' ? (
+          <>
+            {/* Category Selectors */}
+            <div className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-[22px]">
+              <div className="flex gap-2 overflow-x-auto">
+                {['All', 'Upper', 'Lower', 'Core', 'Cardio'].map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setWorkoutCategory(c)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                      workoutCategory === c
+                        ? 'bg-dory-blue/30 text-ice-blue border border-dory-blue/40 shadow-lg'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={startWorkout}
+                className="bg-dory-blue hover:bg-dory-blue/80 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-1.5 text-sm"
+              >
+                <Play className="w-4 h-4 fill-current" /> Start Workout
+              </button>
+            </div>
+
+            {workoutStatus === 'completed' && (
+              <div className="p-6 bg-dory-blue/10 border border-dory-blue/20 rounded-[22px] text-center">
+                <span className="text-4xl">🎉</span>
+                <h4 className="text-xl font-bold text-white mt-2">Workout Completed!</h4>
+                <p className="text-sm text-slate-300 mt-1">Excellent job! You did fantastic.</p>
+              </div>
+            )}
+
+            {/* Exercises List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[60vh] pr-2">
+              {list.map((ex, idx) => (
+                <div key={idx} className="bg-white/5 p-5 rounded-[22px] border border-white/5 flex gap-4 items-start hover:border-dory-blue/20 transition-all">
+                  <div className="w-12 h-12 bg-dory-blue/20 border border-dory-blue/30 rounded-2xl flex items-center justify-center flex-shrink-0 text-dory-blue font-black text-lg">
+                    {idx + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex justify-between items-start gap-2">
+                      <h4 className="font-bold text-base text-white truncate">{ex.name}</h4>
+                      <span className="text-[10px] bg-dory-blue/20 text-ice-blue font-bold px-2 py-0.5 rounded-full flex-shrink-0">{ex.duration}s</span>
+                    </div>
+                    <p className="text-xs text-dory-yellow font-semibold mt-0.5">{ex.muscles}</p>
+                    <p className="text-xs text-slate-300 mt-2 leading-relaxed">{ex.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <GlassPanel className="flex flex-col md:flex-row border border-dory-blue/30 items-center justify-around p-8 flex-grow gap-8">
+            {/* Visual Animation Column */}
+            <div className="flex flex-col items-center flex-1">
+              <span className="text-xs font-bold uppercase tracking-widest text-dory-yellow mb-4">
+                {workoutStatus === 'active' ? 'Active Exercise' : 'Rest Cycle'}
+              </span>
+              
+              {/* Animated stick figure */}
+              <div className="w-48 h-48 bg-black/20 rounded-full border border-white/10 flex items-center justify-center shadow-inner mb-4">
+                {workoutStatus === 'active' ? (
+                  <WorkoutAnimation exerciseName={activeEx.name} />
+                ) : (
+                  <span className="text-6xl animate-bounce">🧘</span>
+                )}
+              </div>
+              
+              <h3 className="text-3xl font-black text-white">{workoutStatus === 'active' ? activeEx.name : 'Take a Breath'}</h3>
+              <p className="text-sm text-dory-yellow mt-1">{workoutStatus === 'active' ? activeEx.muscles : 'Get ready'}</p>
+            </div>
+
+            {/* Timer Column */}
+            <div className="flex flex-col items-center flex-1">
+              {/* Timer visual circle */}
+              <div className="relative w-48 h-48 mb-6 flex items-center justify-center">
+                <svg className="absolute w-full h-full -rotate-90">
+                  <circle
+                    cx="96" cy="96" r="80"
+                    className="stroke-slate-800" strokeWidth="8" fill="none"
+                  />
+                  <circle
+                    cx="96" cy="96" r="80"
+                    className={workoutStatus === 'active' ? 'stroke-dory-blue' : 'stroke-reef-coral'}
+                    strokeWidth="8" fill="none"
+                    strokeDasharray="502"
+                    strokeDashoffset={502 - (502 * workoutTimer) / (workoutStatus === 'active' ? activeEx.duration : 15)}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 1s linear' }}
+                  />
+                </svg>
+                <div className="flex flex-col">
+                  <span className="text-5xl font-black text-white tracking-tighter">{workoutTimer}</span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-1">seconds</span>
+                </div>
+              </div>
+
+              {workoutStatus === 'active' ? (
+                <p className="text-xs text-slate-300 max-w-sm leading-relaxed mb-6 italic">"{activeEx.desc}"</p>
+              ) : (
+                <div className="mb-6 text-center">
+                  <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Next Up:</p>
+                  <p className="text-lg font-bold text-white mt-1">{list[currentExerciseIndex + 1]?.name || 'Finishing'}</p>
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  onClick={pauseWorkout}
+                  className="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all"
+                >
+                  Pause
+                </button>
+                <button
+                  onClick={resetWorkout}
+                  className="bg-red-600/20 hover:bg-red-600/30 border border-red-500/20 text-red-300 font-bold px-6 py-2.5 rounded-xl text-sm transition-all"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          </GlassPanel>
+        )}
+      </div>
+    );
+  };
+
+  const renderKids = () => {
+    if (kidsGame === 'math') {
+      return (
+        <div className="flex-grow flex flex-col gap-6 w-full">
+          <div className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-2xl">
+            <h3 className="text-xl font-bold flex items-center gap-2">🎈 Math Quiz</h3>
+            <button
+              onClick={() => setKidsGame(null)}
+              className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold px-3 py-1.5 rounded-full"
+            >
+              Back to Games
+            </button>
+          </div>
+          <GlassPanel className="flex flex-col items-center justify-center text-center p-8 flex-grow border border-purple-500/20">
+            <div className="flex justify-between w-full mb-6 max-w-sm">
+              <span className="text-sm font-bold text-slate-400">Score: {mathState.score}</span>
+              <span className="text-sm font-bold text-slate-400">Total: {mathState.total}</span>
+            </div>
+            {mathState.options.length === 0 ? (
+              <button
+                onClick={startMathQuiz}
+                className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-8 rounded-2xl text-lg transition-all shadow-lg shadow-purple-600/30"
+              >
+                Start Math Quiz!
+              </button>
+            ) : (
+              <>
+                <h4 className="text-6xl font-black text-white tracking-tighter mb-10">
+                  {mathState.num1} + {mathState.num2} = ?
+                </h4>
+                <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                  {mathState.options.map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => answerMath(opt)}
+                      className="bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/50 text-2xl font-bold py-5 rounded-2xl transition-all"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </GlassPanel>
+        </div>
+      );
+    }
+
+    if (kidsGame === 'memory') {
+      return (
+        <div className="flex-grow flex flex-col gap-6 w-full">
+          <div className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-2xl">
+            <h3 className="text-xl font-bold flex items-center gap-2">🐶 Match Emojis</h3>
+            <div className="flex gap-4 items-center">
+              <span className="text-xs font-bold text-slate-400">Moves: {memoryMoves}</span>
+              <button
+                onClick={() => setKidsGame(null)}
+                className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold px-3 py-1.5 rounded-full"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+          <GlassPanel className="flex flex-col items-center justify-center p-6 flex-grow border border-purple-500/20">
+            {memoryCards.length === 0 ? (
+              <button
+                onClick={startMemoryGame}
+                className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-8 rounded-2xl text-lg transition-all"
+              >
+                Start Memory Match!
+              </button>
+            ) : (
+              <div className="grid grid-cols-4 gap-3 w-full max-w-sm">
+                {memoryCards.map(card => (
+                  <button
+                    key={card.id}
+                    onClick={() => handleCardClick(card)}
+                    className={`aspect-square rounded-2xl text-3xl flex items-center justify-center border transition-all ${
+                      card.isFlipped || card.isMatched
+                        ? 'bg-purple-500/20 border-purple-500/40'
+                        : 'bg-white/5 border-white/10 hover:border-purple-500/30'
+                    }`}
+                  >
+                    {card.isFlipped || card.isMatched ? card.emoji : '❓'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </GlassPanel>
+        </div>
+      );
+    }
+
+    if (kidsGame === 'paint') {
+      return <PaintGame onBack={() => setKidsGame(null)} />;
+    }
+
+    if (kidsGame === 'phonics') {
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      return (
+        <div className="flex-grow flex flex-col gap-6 w-full">
+          <div className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-2xl">
+            <h3 className="text-xl font-bold flex items-center gap-2">🗣 Phonics Soundboard</h3>
+            <button
+              onClick={() => setKidsGame(null)}
+              className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold px-3 py-1.5 rounded-full"
+            >
+              Back
+            </button>
+          </div>
+          <GlassPanel className="flex flex-col p-6 flex-grow border border-purple-500/20">
+            <p className="text-xs text-slate-400 font-bold mb-4 uppercase tracking-widest text-center">Tap a letter to hear its sound!</p>
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-3 justify-center max-h-[50vh] overflow-y-auto pr-2">
+              {alphabet.map(letter => (
+                <button
+                  key={letter}
+                  onClick={() => triggerPhonics(letter)}
+                  className="aspect-square bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/50 rounded-2xl font-black text-2xl text-slate-200 transition-all flex items-center justify-center"
+                >
+                  {letter}
+                </button>
+              ))}
+            </div>
+          </GlassPanel>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-6 w-full">
+        <GlassPanel
+          onClick={async () => {
+            try {
+              await axios.post('/api/launch_gcompris');
+            } catch (err) {
+              alert('Failed to launch GCompris: ' + (err.response?.data?.message || err.message));
+            }
+          }}
+          className="flex flex-col md:flex-row items-center justify-between cursor-pointer hover:border-dory-yellow/40 hover:bg-dory-blue/5 border border-white/10 p-6 group"
+        >
+          <div className="flex items-center gap-4 text-left">
+            <span className="text-5xl group-hover:scale-110 transition-transform">🚀</span>
+            <div>
+              <h4 className="text-xl font-bold text-white">GCompris Educational Suite</h4>
+              <p className="text-xs text-slate-300 mt-1">Click to launch the complete offline collection of 140+ educational activities!</p>
+            </div>
+          </div>
+          <span className="mt-4 md:mt-0 px-6 py-2.5 bg-dory-blue text-white rounded-full font-bold text-sm shadow hover:bg-dory-blue/80 transition-colors">
+            Launch App
+          </span>
+        </GlassPanel>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow w-full">
+          <GlassPanel
+            onClick={() => { setKidsGame('math'); startMathQuiz(); }}
+            className="flex flex-col items-center justify-center text-center cursor-pointer hover:border-dory-blue/40 hover:bg-dory-blue/5 transition-all p-8 group border border-white/10"
+          >
+            <span className="text-5xl group-hover:scale-110 transition-transform">🎈</span>
+            <h4 className="text-lg font-bold text-white mt-4">Math Quiz</h4>
+            <p className="text-xs text-slate-400 mt-1">Practice addition and subtraction sums!</p>
+          </GlassPanel>
+
+          <GlassPanel
+            onClick={() => { setKidsGame('memory'); startMemoryGame(); }}
+            className="flex flex-col items-center justify-center text-center cursor-pointer hover:border-dory-blue/40 hover:bg-dory-blue/5 transition-all p-8 group border border-white/10"
+          >
+            <span className="text-5xl group-hover:scale-110 transition-transform">🐹</span>
+            <h4 className="text-lg font-bold text-white mt-4">Memory Match</h4>
+            <p className="text-xs text-slate-400 mt-1">Match pairs of animal emoji cards!</p>
+          </GlassPanel>
+
+          <GlassPanel
+            onClick={() => setKidsGame('paint')}
+            className="flex flex-col items-center justify-center text-center cursor-pointer hover:border-dory-blue/40 hover:bg-dory-blue/5 transition-all p-8 group border border-white/10"
+          >
+            <span className="text-5xl group-hover:scale-110 transition-transform">🎨</span>
+            <h4 className="text-lg font-bold text-white mt-4">Painting Board</h4>
+            <p className="text-xs text-slate-400 mt-1">Draw and paint with colors on screen!</p>
+          </GlassPanel>
+
+          <GlassPanel
+            onClick={() => setKidsGame('phonics')}
+            className="flex flex-col items-center justify-center text-center cursor-pointer hover:border-dory-blue/40 hover:bg-dory-blue/5 transition-all p-8 group border border-white/10"
+          >
+            <span className="text-5xl group-hover:scale-110 transition-transform">🗣</span>
+            <h4 className="text-lg font-bold text-white mt-4">Phonics Soundboard</h4>
+            <p className="text-xs text-slate-400 mt-1">Learn alphabet spelling sounds!</p>
+          </GlassPanel>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSettings = () => {
+    return (
+      <div className="flex flex-col lg:flex-row gap-6 w-full items-stretch flex-grow">
+        {/* Settings Left Menu */}
+        <aside className="lg:w-56 flex flex-row lg:flex-col gap-2 p-3 bg-white/5 border border-white/10 rounded-[22px] justify-between lg:justify-start flex-wrap flex-shrink-0">
+          <button
+            onClick={() => setLeftTab('alarms')}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              leftTab === 'alarms' ? 'bg-dory-blue text-white shadow-lg' : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            ⏰ Alarms & Events
+          </button>
+          <button
+            onClick={() => setLeftTab('voice')}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              leftTab === 'voice' ? 'bg-dory-blue text-white shadow-lg' : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            🎙 Voice Recorder
+          </button>
+          <button
+            onClick={() => setLeftTab('media')}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              leftTab === 'media' ? 'bg-dory-blue text-white shadow-lg' : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            🎵 Media & Songs
+          </button>
+          <button
+            onClick={() => setLeftTab('mosque')}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              leftTab === 'mosque' ? 'bg-dory-blue text-white shadow-lg' : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            🕌 Mosque Setup
+          </button>
+        </aside>
+
+        {/* Settings Right panel */}
+        <div className="flex-grow flex flex-col min-w-0">
+          {leftTab === 'alarms' && renderReminders()}
+          {leftTab === 'voice' && (
+            <div className="flex flex-col gap-6 w-full text-left">
+              <GlassPanel className="border border-dory-blue/20">
+                <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+                  <Mic2 className="w-5 h-5 text-dory-blue" /> Voice Recording Studio
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-6 items-center justify-around bg-black/20 p-5 rounded-[22px] border border-white/5">
+                  <div className="flex flex-col items-center gap-2">
+                    {isRecording ? (
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="w-16 h-16 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all animate-pulse"
+                      >
+                        <div className="w-6 h-6 bg-white rounded" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={startRecording}
+                        className="w-16 h-16 bg-dory-blue hover:bg-dory-blue/80 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all"
+                      >
+                        <Mic2 className="w-7 h-7" />
+                      </button>
+                    )}
+                    <span className="text-xs font-bold text-slate-400">
+                      {isRecording ? `Recording... (${recordingTime}s)` : 'Tap to Record'}
+                    </span>
+                  </div>
+
+                  {audioBlobUrl && (
+                    <div className="flex-1 max-w-sm space-y-3 bg-white/5 p-4 rounded-xl border border-white/10 w-full">
+                      <audio src={audioBlobUrl} controls className="w-full h-8" />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Give it a name"
+                          value={recordingName}
+                          onChange={e => setRecordingName(e.target.value)}
+                          className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:border-dory-blue"
+                        />
+                        <button
+                          onClick={saveRecording}
+                          disabled={isSavingRecording}
+                          className="px-4 py-1.5 bg-dory-blue text-white rounded-xl text-xs font-bold shadow hover:bg-dory-blue/80 transition-all flex items-center gap-1"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </GlassPanel>
+            </div>
+          )}
+          {leftTab === 'media' && renderMedia()}
+          {leftTab === 'mosque' && (
+            <div className="flex flex-col gap-6 w-full text-left">
+              <GlassPanel className="border border-dory-blue/20">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+                  <div className="text-left">
+                    <h3 className="text-xl font-bold">Mosque Prayer Sync</h3>
+                    <p className="text-xs text-slate-300 mt-1">Sync local prayer times from your local mosque using Mawaqit slug.</p>
+                  </div>
+                  <button
+                    onClick={syncPrayers}
+                    disabled={isSyncingPrayers}
+                    className="bg-dory-blue hover:bg-dory-blue/80 text-white font-bold px-4 py-2 rounded-xl text-sm transition-all"
+                  >
+                    Sync Times Now
+                  </button>
+                </div>
+
+                {/* Configure Mosque button */}
+                <div className="flex flex-col items-start gap-4">
+                  <button
+                    onClick={() => setMosqueModalOpen(true)}
+                    className="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold px-4 py-2 rounded-xl text-sm transition-all"
+                  >
+                    Configure Mosque Slug & Adhans
+                  </button>
+                  {selectedMosque && (
+                    <p className="text-sm text-dory-yellow">Selected: <strong>{selectedMosque.name}</strong></p>
+                  )}
+                </div>
+              </GlassPanel>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div
-      className="min-h-screen text-slate-100 p-4 md:p-8 flex flex-col font-sans relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #0f172a 0%, #171717 100%)' }}
+      className="min-h-screen text-slate-100 p-4 md:p-8 pb-32 flex flex-col font-sans relative overflow-hidden"
+      style={{
+        backgroundImage: 'url("/Nabd.jpg")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed'
+      }}
     >
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/60 to-slate-900/40 z-0 pointer-events-none" />
+
       {/* Ambient glows */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/30 blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/20 blur-[150px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-dory-blue/20 blur-[150px] pointer-events-none z-0" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-reef-coral/15 blur-[150px] pointer-events-none z-0" />
 
       {/* Toast */}
       {activeToast && (
@@ -416,363 +1960,83 @@ function App() {
       {/* Header */}
       <header className="flex justify-between items-center mb-8 relative z-10 w-full max-w-6xl mx-auto">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-purple-500/20 rounded-2xl border border-purple-500/30">
-            <Mic2 className="text-purple-400 w-8 h-8" />
+          <div className="p-3 bg-dory-blue/20 rounded-2xl border border-dory-blue/30">
+            <Activity className="text-dory-blue w-8 h-8" />
           </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
-              Mony
+          <div className="text-left">
+            <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+              Dory - Family Hub
             </h1>
-            <p className="text-sm text-slate-400">Smart Assistant &amp; Media Hub</p>
+            <p className="text-sm text-ice-blue font-semibold">Smart Touchscreen Kiosk</p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-xl shadow-inner">
-            <Volume2 className="w-4 h-4 text-slate-300" />
+          <div className="flex items-center gap-3 bg-white/10 border border-white/20 px-4 py-2 rounded-xl shadow-inner backdrop-blur-md">
+            <Volume2 className="w-4 h-4 text-slate-200" />
             <input
-              type="range" min="0" max="100" value={volume}
+              type="range"
+              min="0"
+              max="100"
+              value={volume}
               onChange={e => setVolume(e.target.value)}
               onMouseUp={e => setSystemVolume(e.target.value)}
               onTouchEnd={e => setSystemVolume(e.target.value)}
-              className="w-24 accent-purple-500 cursor-pointer"
+              className="w-24 accent-dory-blue cursor-pointer"
             />
-            <span className="text-xs font-bold text-slate-400 w-6 text-right">{volume}%</span>
+            <span className="text-xs font-bold text-slate-200 w-6 text-right">
+              {volume}%
+            </span>
           </div>
-          <button onClick={testSpeaker} className="flex items-center bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 rounded-xl text-sm border border-white/10">
+
+          <button
+            onClick={testSpeaker}
+            className="flex items-center bg-white/15 hover:bg-white/25 transition-colors px-4 py-2 rounded-xl text-sm border border-white/25 text-white font-bold backdrop-blur-md"
+          >
             <Volume2 className="w-4 h-4 mr-2" /> Test Speaker
           </button>
-          <GlassPanel className="!p-3 !rounded-2xl flex items-center justify-center">
-            <Activity className="text-emerald-400 w-5 h-5 animate-pulse" />
-            <span className="ml-2 text-sm font-medium">Online</span>
-          </GlassPanel>
+
+          <div className="bg-white/15 border border-white/25 px-4 py-2 rounded-xl flex items-center justify-center backdrop-blur-md font-bold text-sm">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2ECC71] animate-pulse" />
+            <span className="ml-2">Online</span>
+          </div>
         </div>
       </header>
 
-      {/* Main Grid */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 w-full max-w-6xl mx-auto">
+      {/* Main Container with Tab Route */}
+      <div className="flex flex-col relative z-10 w-full max-w-6xl mx-auto flex-grow items-stretch">
+        <main className="flex-grow flex flex-col min-w-0 pb-6">
+          {activeTab === 'home' && renderDashboard()}
+          {activeTab === 'islamic' && renderDhikr()}
+          {activeTab === 'workout' && renderWorkout()}
+          {activeTab === 'kids' && renderKids()}
+          {activeTab === 'settings' && renderSettings()}
+        </main>
+      </div>
 
-        {/* ── Left Column: Alarms & Events Tabs ─────────────────────────────── */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          {/* Clock */}
-          <GlassPanel className="flex flex-col items-center justify-center py-10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-50">
-              {time.getHours() >= 6 && time.getHours() < 18
-                ? <Sun className="w-8 h-8 text-yellow-400" />
-                : <Moon className="w-8 h-8 text-blue-300" />}
-            </div>
-            <h2 className="text-6xl font-black tracking-tighter mb-2" suppressHydrationWarning>
-              {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-            </h2>
-            <p className="text-lg text-slate-300 font-medium">
-              {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
-          </GlassPanel>
-
-          {/* Tab panel */}
-          <GlassPanel className="flex-grow flex flex-col">
-            {/* Tab switcher */}
-            <div className="flex gap-2 mb-6 bg-black/20 p-1 rounded-2xl border border-white/5">
-              <button
-                onClick={() => setLeftTab('alarms')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all ${
-                  leftTab === 'alarms'
-                    ? 'bg-purple-500/30 text-purple-300 border border-purple-500/40 shadow'
-                    : 'text-slate-500 hover:text-slate-300'
-                }`}
-              >
-                <Bell className="w-4 h-4" /> Alarms
-              </button>
-              <button
-                onClick={() => setLeftTab('events')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all ${
-                  leftTab === 'events'
-                    ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40 shadow'
-                    : 'text-slate-500 hover:text-slate-300'
-                }`}
-              >
-                <CalendarClock className="w-4 h-4" /> Events
-              </button>
-            </div>
-
-            {/* ── ALARMS TAB ── */}
-            {leftTab === 'alarms' && (
-              <>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-base font-bold flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-purple-400" />
-                    <span className="text-slate-300">{alarms.length} alarm{alarms.length !== 1 ? 's' : ''}</span>
-                  </h3>
-                  <button
-                    onClick={() => setAlarmModalOpen(true)}
-                    className="text-sm bg-purple-500/20 hover:bg-purple-500/40 px-3 py-1.5 rounded-full text-purple-300 transition-colors shadow flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add
-                  </button>
-                </div>
-                <div className="space-y-3 overflow-y-auto flex-grow max-h-[340px]">
-                  {alarms.length === 0 && (
-                    <div className="text-center py-8 text-slate-600">
-                      <AlarmCheck className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                      <p className="text-sm">No alarms set</p>
-                    </div>
-                  )}
-                  {alarms.map(alarm => (
-                    <div
-                      key={alarm.id}
-                      className={`bg-black/20 p-4 rounded-2xl border transition-all ${
-                        alarm.active ? 'border-purple-500/50' : 'border-white/5 opacity-50'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-2xl font-black tracking-tight">{alarm.time}</h4>
-                            {alarm.sound_file && <Music className="w-3 h-3 text-purple-400" />}
-                          </div>
-                          <p className="text-sm text-slate-400 font-medium">{alarm.label}</p>
-                          <DayBadges days={alarm.days} />
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <div
-                            onClick={() => toggleAlarm(alarm.id)}
-                            className={`w-11 h-6 ${alarm.active ? 'bg-purple-500' : 'bg-slate-700'} rounded-full relative cursor-pointer transition-colors`}
-                          >
-                            <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow ${alarm.active ? 'right-1' : 'left-1'}`} />
-                          </div>
-                          <button onClick={() => deleteAlarm(alarm.id)} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* ── EVENTS TAB ── */}
-            {leftTab === 'events' && (
-              <>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-base font-bold flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-amber-400" />
-                    <span className="text-slate-300">{events.length} event{events.length !== 1 ? 's' : ''}</span>
-                  </h3>
-                  <button
-                    onClick={() => setEventModalOpen(true)}
-                    className="text-sm bg-amber-500/20 hover:bg-amber-500/40 px-3 py-1.5 rounded-full text-amber-300 transition-colors shadow flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add
-                  </button>
-                </div>
-                <div className="space-y-3 overflow-y-auto flex-grow max-h-[340px]">
-                  {events.length === 0 && (
-                    <div className="text-center py-8 text-slate-600">
-                      <Calendar className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                      <p className="text-sm">No events scheduled</p>
-                    </div>
-                  )}
-                  {events.map(evt => (
-                    <div key={evt.id} className={`bg-black/20 p-4 rounded-2xl border transition-all ${
-                      evt.notified ? 'border-white/5 opacity-50' : 'border-amber-500/30'
-                    }`}>
-                      <div className="flex justify-between items-start">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Clock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                            <span className="text-sm font-bold text-amber-300 whitespace-nowrap">
-                              {formatEventDatetime(evt.datetime)}
-                            </span>
-                            {evt.notified && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">Done</span>
-                            )}
-                          </div>
-                          <p className="text-sm text-white font-medium truncate">{evt.label}</p>
-                          {evt.sound_file && (
-                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1 truncate">
-                              <Music className="w-3 h-3" /> {evt.sound_file.split('/').pop()}
-                            </p>
-                          )}
-                        </div>
-                        <button onClick={() => deleteEvent(evt.id)} className="text-xs text-red-400 hover:text-red-300 ml-2 flex-shrink-0">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </GlassPanel>
-        </div>
-
-        {/* ── Center Column: Media Hub ──────────────────────────────────────── */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <GlassPanel className="h-full flex flex-col">
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-6">
-              <Radio className="w-5 h-5 text-blue-400" /> Web Radio
-            </h3>
-
-            <div className="flex-grow flex flex-col items-center justify-center">
-              <div className="aspect-square w-full max-w-[200px] mx-auto bg-gradient-to-br from-indigo-900 to-purple-900 rounded-[2.5rem] mb-8 flex items-center justify-center relative overflow-hidden group shadow-[inset_0_-2px_4px_rgba(0,0,0,0.6),0_10px_20px_rgba(0,0,0,0.5)]">
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                {isPlaying && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-24 h-24 border-2 border-white/20 rounded-full animate-ping" />
-                  </div>
-                )}
-                <Radio className={`w-20 h-20 text-white/80 transition-transform duration-500 ${isPlaying ? 'scale-110' : ''}`} />
-                {isPlaying && (
-                  <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 border border-white/10">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> LIVE
-                  </div>
-                )}
-              </div>
-
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-8 px-2 bg-black/20 p-2 rounded-2xl border border-white/5">
-                  <button onClick={prevRadio} className="p-2 bg-white/5 rounded-full hover:bg-white/20 transition-all text-white/70">
-                    <svg className="w-5 h-5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                  </button>
-                  <div className="text-center mx-2 flex-grow min-w-0">
-                    <h4 className="text-xl font-bold truncate">{currentRadio.name}</h4>
-                    <p className="text-blue-300 text-xs mt-1 truncate uppercase tracking-widest font-bold">{currentRadio.location}</p>
-                  </div>
-                  <button onClick={nextRadio} className="p-2 bg-white/5 rounded-full hover:bg-white/20 transition-all text-white/70">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center items-center gap-6 mt-auto">
-              <button
-                onClick={handlePlayToggle}
-                className={`p-5 rounded-full transition-all border shadow-xl transform hover:-translate-y-1 text-white flex items-center justify-center w-[80px] h-[80px] ${isPlaying ? 'bg-indigo-600 border-indigo-400' : 'bg-blue-600 border-blue-400'}`}
-              >
-                {isPlaying ? <Pause className="w-10 h-10 fill-current" /> : <Play className="w-10 h-10 fill-current translate-x-1" />}
-              </button>
-            </div>
-          </GlassPanel>
-
-          {/* Songs Module */}
-          <GlassPanel className="flex flex-col border border-purple-500/30">
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
-              <Music className="w-5 h-5 text-purple-400" /> Songs Library
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">Select Track</label>
-                <select
-                  value={selectedSong}
-                  onChange={e => { setSelectedSong(e.target.value); setIsSongPlaying(false); }}
-                  className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm focus:border-purple-500"
-                >
-                  {songs.map(s => <option key={s} value={s}>{s}</option>)}
-                  {songs.length === 0 && <option value="">No songs found</option>}
-                </select>
-              </div>
-              <div className="flex justify-between items-center bg-black/20 p-2 rounded-2xl border border-white/5">
-                <button
-                  onClick={handleSongPlayToggle}
-                  disabled={!selectedSong}
-                  className={`p-3 rounded-full transition-all flex items-center justify-center ${isSongPlaying ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:text-white'}`}
-                >
-                  {isSongPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-0.5" />}
-                </button>
-                {isSongPlaying && (
-                  <div className="flex gap-1 pr-4">
-                    {[0, 150, 300].map(d => (
-                      <span key={d} className="w-1.5 bg-purple-500 rounded-full animate-bounce" style={{ height: `${16 + d / 20}px`, animationDelay: `${d}ms` }} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </GlassPanel>
-        </div>
-
-        {/* ── Right Column: Prayer Times & Upload ─────────────────────────── */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-
-          {/* Prayer Times Panel */}
-          <GlassPanel className="relative overflow-hidden">
-            <div className="absolute right-4 top-4 opacity-10 text-emerald-400">
-              <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 1 1 12 2z"/></svg>
-            </div>
-
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <span className="text-2xl">🕌</span> Prayer Times
-              </h3>
-              <button
-                onClick={syncPrayers}
-                disabled={isSyncingPrayers}
-                title="Re-sync from Mawaqit"
-                className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all disabled:opacity-40"
-              >
-                <RefreshCw className={`w-4 h-4 text-emerald-400 ${isSyncingPrayers ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-
-            {/* Next prayer hero */}
-            {(() => {
-              const next = getNextPrayer();
-              return Object.keys(prayers).length > 0 ? (
-                <div className="bg-gradient-to-br from-emerald-900/40 to-teal-900/20 rounded-2xl p-4 border border-emerald-500/25 mb-4">
-                  <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Next Prayer
-                  </p>
-                  <div className="flex justify-between items-end">
-                    <span className="text-3xl font-bold text-white">{next}</span>
-                    <span className="text-2xl font-mono font-bold text-emerald-300">{prayers[next] || '--:--'}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-black/20 rounded-2xl p-4 border border-white/5 mb-4 text-center">
-                  <p className="text-slate-500 text-sm">
-                    {isSyncingPrayers ? 'Syncing prayer times...' : 'No times yet — tap 🔄 to sync'}
-                  </p>
-                </div>
-              );
-            })()}
-
-            {/* All prayers list */}
-            <div className="space-y-1">
-              {['Fajr','Shuruq','Dhuhr','Asr','Maghrib','Isha'].map(p => {
-                const next = getNextPrayer();
-                const isNext = p === next && prayers[p];
-                return (
-                  <div key={p} className={`flex justify-between items-center px-4 py-2.5 rounded-xl transition-all ${
-                    isNext
-                      ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold'
-                      : 'text-slate-400 hover:bg-white/5'
-                  }`}>
-                    <span className="text-sm">{p}</span>
-                    <span className="font-mono text-sm tracking-wider">{prayers[p] || '--:--'}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <p className="text-xs text-slate-600 mt-3 text-center">Al-Fourqaan Mosque · Auto-synced daily</p>
-          </GlassPanel>
-
-          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".mp3,.wav" />
-          <GlassPanel
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-grow flex flex-col justify-center items-center text-center border-dashed border-2 border-white/20 hover:border-blue-400/50 hover:bg-blue-500/5 transition-all cursor-pointer group"
+      {/* Floating Bottom Navigation Dock */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/22 backdrop-blur-glass border-[1.5px] border-white/55 px-6 py-3 rounded-full flex gap-3 shadow-[0_8px_32px_0_rgba(0,31,63,0.25)]">
+        {[
+          { id: 'home', label: 'Home', icon: <Home className="w-5 h-5" /> },
+          { id: 'islamic', label: 'Islamic', icon: <BookOpen className="w-5 h-5" /> },
+          { id: 'workout', label: 'Workout', icon: <Dumbbell className="w-5 h-5" /> },
+          { id: 'kids', label: 'Kids Corner', icon: <Gamepad2 className="w-5 h-5" /> },
+          { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> }
+        ].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === t.id
+                ? 'bg-dory-blue text-white shadow-[0_0_12px_rgba(13,112,234,0.4)]'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
           >
-            <div className="p-4 bg-blue-500/10 rounded-full mb-4 group-hover:scale-110 transition-all border border-blue-500/20">
-              <UploadCloud className="w-8 h-8 text-blue-400" />
-            </div>
-            <h4 className="font-bold text-lg mb-1">Local Storage</h4>
-            <p className="text-sm text-slate-400 max-w-[200px]">Tap to browse or drop MP3s to the 50GB Pi volume</p>
-          </GlassPanel>
-        </div>
-
-      </main>
+            {t.icon}
+            <span className="hidden sm:inline">{t.label}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* ═══════════════════════════════════════════════════════════════════════
           MODALS
@@ -780,11 +2044,11 @@ function App() {
 
       {/* ── ADD ALARM MODAL ── */}
       <Modal isOpen={isAlarmModalOpen} onClose={() => { setAlarmModalOpen(false); setAlarmDays(['Mon','Tue','Wed','Thu','Fri']); }} title="New Alarm">
-        <form onSubmit={submitAlarm} className="space-y-5">
+        <form onSubmit={submitAlarm} className="space-y-5 text-left">
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-300">Time</label>
             <input name="time" type="time" defaultValue="07:00"
-              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue"
               required
             />
           </div>
@@ -792,7 +2056,7 @@ function App() {
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-300">Label</label>
             <input name="label" type="text" placeholder="e.g. Morning Workout"
-              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue"
               required
             />
           </div>
@@ -805,12 +2069,35 @@ function App() {
             )}
           </div>
 
+          <div className="flex items-center gap-2 py-1">
+            <input
+              type="checkbox"
+              id="alarm_use_tts"
+              name="use_tts"
+              value="true"
+              className="w-4 h-4 rounded text-dory-blue bg-slate-800 border-slate-600 focus:ring-dory-blue"
+            />
+            <label htmlFor="alarm_use_tts" className="text-sm font-semibold text-slate-300">
+              🗣 Use Text-to-Speech (TTS)
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-300">TTS Speech Text</label>
+            <input
+              name="tts_text"
+              type="text"
+              placeholder="e.g. Rise and shine!"
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue"
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-300 flex items-center gap-2">
-              <Music className="w-4 h-4 text-purple-400" /> Ringtone
+              <Music className="w-4 h-4 text-dory-yellow" /> Ringtone
             </label>
             <select name="sound_file"
-              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue"
             >
               <option value="">(None — TTS only)</option>
               {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
@@ -818,7 +2105,7 @@ function App() {
           </div>
 
           <button type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-purple-600/30 flex justify-center items-center gap-2 mt-2"
+            className="w-full bg-dory-blue hover:bg-dory-blue/80 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-dory-blue/30 flex justify-center items-center gap-2 mt-2"
           >
             <Plus className="w-5 h-5" /> Save Alarm
           </button>
@@ -826,30 +2113,30 @@ function App() {
       </Modal>
 
       {/* ── ADD EVENT MODAL ── */}
-      <Modal isOpen={isEventModalOpen} onClose={() => { setEventModalOpen(false); setEventForm({ date: '', time: '', label: '', sound_file: '' }); }} title="New Event">
-        <form onSubmit={submitEvent} className="space-y-5">
+      <Modal isOpen={isEventModalOpen} onClose={() => { setEventModalOpen(false); setEventForm({ date: '', time: '', label: '', sound_file: '', use_tts: false, tts_text: '' }); }} title="New Event">
+        <form onSubmit={submitEvent} className="space-y-5 text-left">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-semibold mb-2 text-slate-300 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" /> Date
+                <Calendar className="w-3.5 h-3.5 text-dory-yellow" /> Date
               </label>
               <input
                 type="date"
                 value={eventForm.date}
                 onChange={e => setEventForm({ ...eventForm, date: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-sm"
+                className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue text-sm"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-semibold mb-2 text-slate-300 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-400" /> Time
+                <Clock className="w-3.5 h-3.5 text-dory-yellow" /> Time
               </label>
               <input
                 type="time"
                 value={eventForm.time}
                 onChange={e => setEventForm({ ...eventForm, time: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-sm"
+                className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue text-sm"
                 required
               />
             </div>
@@ -862,19 +2149,43 @@ function App() {
               placeholder="e.g. Doctor appointment"
               value={eventForm.label}
               onChange={e => setEventForm({ ...eventForm, label: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue"
               required
+            />
+          </div>
+
+          <div className="flex items-center gap-2 py-1">
+            <input
+              type="checkbox"
+              id="event_use_tts"
+              checked={eventForm.use_tts || false}
+              onChange={e => setEventForm({ ...eventForm, use_tts: e.target.checked })}
+              className="w-4 h-4 rounded text-dory-blue bg-slate-800 border-slate-600 focus:ring-dory-blue"
+            />
+            <label htmlFor="event_use_tts" className="text-sm font-semibold text-slate-300">
+              🗣 Use Text-to-Speech (TTS)
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-300">TTS Speech Text</label>
+            <input
+              type="text"
+              placeholder="e.g. Appointment reminder"
+              value={eventForm.tts_text || ''}
+              onChange={e => setEventForm({ ...eventForm, tts_text: e.target.value })}
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue"
             />
           </div>
 
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-300 flex items-center gap-2">
-              <Music className="w-4 h-4 text-amber-400" /> Ringtone
+              <Music className="w-4 h-4 text-dory-yellow" /> Ringtone
             </label>
             <select
               value={eventForm.sound_file}
               onChange={e => setEventForm({ ...eventForm, sound_file: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-dory-blue focus:ring-1 focus:ring-dory-blue"
             >
               <option value="">(None — no sound)</option>
               {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
@@ -882,15 +2193,208 @@ function App() {
           </div>
 
           <button type="submit"
-            className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-amber-600/30 flex justify-center items-center gap-2 mt-2"
+            className="w-full bg-dory-blue hover:bg-dory-blue/80 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-dory-blue/30 flex justify-center items-center gap-2 mt-2"
           >
             <CalendarClock className="w-5 h-5" /> Save Event
           </button>
         </form>
       </Modal>
 
+      {/* ── MOSQUE SETTINGS MODAL ── */}
+      <Modal isOpen={isMosqueModalOpen} onClose={() => setMosqueModalOpen(false)} title="Mosque & Adhan Settings">
+        <div className="space-y-5 text-left">
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-300">Find Mosque</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={scanNearestMosques}
+                disabled={isSyncingMawaqit}
+                className="flex-1 bg-dory-blue hover:bg-dory-blue/80 text-white font-bold py-2.5 px-4 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm shadow-md"
+              >
+                {isSyncingMawaqit ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
+                Scan Nearest Mosques
+              </button>
+            </div>
+          </div>
+
+          {searchResults.length > 0 && (
+            <div className="bg-black/20 p-3 rounded-xl border border-white/5 max-h-48 overflow-y-auto space-y-2">
+              <p className="text-xs text-slate-400 font-semibold mb-1">Search Results:</p>
+              {searchResults.map(m => (
+                <button
+                  key={m.uuid}
+                  type="button"
+                  onClick={() => handleMosqueSelect(m)}
+                  className="w-full text-left p-2.5 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-dory-blue/30 flex justify-between items-center"
+                >
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-sm font-bold text-slate-200 truncate">{m.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{m.city || m.label || 'Unknown city'}</p>
+                  </div>
+                  <span className="text-[10px] bg-dory-blue/20 text-ice-blue font-bold px-2.5 py-1 rounded-full flex-shrink-0">Select</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedMosque && (
+            <div className="p-4 bg-dory-blue/10 border border-dory-blue/20 rounded-2xl">
+              <p className="text-xs text-dory-blue font-bold uppercase tracking-wider">Active Mosque</p>
+              <h4 className="font-bold text-lg text-white mt-1">{selectedMosque.name}</h4>
+              <p className="text-xs text-slate-400 mt-0.5 truncate">UUID: {selectedMosque.uuid}</p>
+            </div>
+          )}
+
+          <div className="border-t border-white/10 pt-4">
+            <h4 className="text-sm font-bold text-slate-300 mb-3">Map Adhan Ringtones</h4>
+            <div className="space-y-3">
+              {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(p => (
+                <div key={p} className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium text-slate-400 w-16">{p}</span>
+                  <select
+                    value={adhanSettings[p] || ''}
+                    onChange={e => setAdhanSettings({ ...adhanSettings, [p]: e.target.value })}
+                    className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-dory-blue"
+                  >
+                    <option value="">(Default Azan)</option>
+                    {musicFiles.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={saveMawaqitConfig}
+            className="w-full bg-dory-blue hover:bg-dory-blue/80 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-dory-blue/30 flex justify-center items-center gap-2 mt-2"
+          >
+            Save Settings
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
+
+const PaintGame = ({ onBack }) => {
+  const canvasRef = useRef(null);
+  const [paintColor, setPaintColor] = useState('#8b5cf6');
+  const [paintBrushSize, setPaintBrushSize] = useState(5);
+  const isDrawingRef = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = paintColor;
+    ctx.lineWidth = paintBrushSize;
+  }, [paintColor, paintBrushSize]);
+
+  const startDrawing = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    isDrawingRef.current = true;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e) => {
+    if (!isDrawingRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+    
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    isDrawingRef.current = false;
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  return (
+    <div className="flex-grow flex flex-col gap-6 w-full">
+      <div className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-2xl">
+        <h3 className="text-xl font-bold flex items-center gap-2">🎨 Painting Canvas</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={clearCanvas}
+            className="text-xs bg-red-600/20 hover:bg-red-600/30 border border-red-500/20 text-red-300 font-bold px-3 py-1.5 rounded-full"
+          >
+            Clear
+          </button>
+          <button
+            onClick={onBack}
+            className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold px-3 py-1.5 rounded-full"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+      <GlassPanel className="flex flex-col p-4 flex-grow border border-purple-500/20 gap-4">
+        {/* Toolbar */}
+        <div className="flex items-center gap-4 bg-black/20 p-2.5 rounded-2xl border border-white/5 justify-between">
+          <div className="flex gap-2">
+            {['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ffffff'].map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setPaintColor(c)}
+                className={`w-6 h-6 rounded-full border ${paintColor === c ? 'border-white scale-110' : 'border-transparent'}`}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Size</span>
+            <input
+              type="range" min="1" max="20" value={paintBrushSize}
+              onChange={e => setPaintBrushSize(parseInt(e.target.value))}
+              className="w-20 accent-purple-500 cursor-pointer"
+            />
+          </div>
+        </div>
+
+        {/* Canvas */}
+        <div className="bg-white rounded-3xl overflow-hidden border border-white/15 aspect-[4/3] w-full flex-grow relative">
+          <canvas
+            ref={canvasRef}
+            width="600"
+            height="450"
+            className="w-full h-full block bg-white cursor-crosshair touch-none"
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+          />
+        </div>
+      </GlassPanel>
+    </div>
+  );
+};
 
 export default App;

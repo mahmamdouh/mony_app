@@ -1,0 +1,1 @@
+data upload command : sudo chown -R 1000:1000 ~/mony_app/data/
