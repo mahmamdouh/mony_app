@@ -21,7 +21,10 @@ sudo apt-get install -y \
   gcompris-qt \
   imagemagick \
   python3-pip \
-  python3-venv
+  python3-venv \
+  fonts-noto-color-emoji \
+  plymouth
+
 
 # 3. Create host python virtual environment for backend and install requirements natively
 echo "[3/4] Creating host python virtual environment for backend..."

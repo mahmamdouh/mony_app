@@ -95,153 +95,50 @@ const DayBadges = ({ days }) => {
   );
 };
 
-// ── Workout SVG Loop Animations ────────────────────────────────────────────────
+// ── Workout GIF Animations (powered by ExerciseGymGifsDB CDN) ─────────────────
+const EXERCISE_GIFS = {
+  squat:    'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/jump-squat.gif',
+  pushup:   'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/push-up.gif',
+  plank:    'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/abs/kneeling-plank-tap-shoulder-male.gif',
+  dip:      'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/triceps-dip.gif',
+  jack:     'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/star-jump-male.gif',
+  cardio:   'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/jack-jump-male.gif',
+  default:  'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/cardio/run.gif',
+};
+
 const WorkoutAnimation = ({ exerciseName }) => {
-  const name = exerciseName.toLowerCase();
-  
-  if (name.includes('squat')) {
+  const name = (exerciseName || '').toLowerCase();
+  const [failed, setFailed] = React.useState(false);
+
+  let gifUrl = EXERCISE_GIFS.default;
+  let fallbackEmoji = '🏃';
+
+  if (name.includes('squat'))                                          { gifUrl = EXERCISE_GIFS.squat;  fallbackEmoji = '🏋️'; }
+  else if (name.includes('push') || name.includes('press'))           { gifUrl = EXERCISE_GIFS.pushup; fallbackEmoji = '💪'; }
+  else if (name.includes('plank'))                                     { gifUrl = EXERCISE_GIFS.plank;  fallbackEmoji = '🧘'; }
+  else if (name.includes('dip') || name.includes('tricep'))           { gifUrl = EXERCISE_GIFS.dip;    fallbackEmoji = '💪'; }
+  else if (name.includes('jack') || name.includes('jumping'))         { gifUrl = EXERCISE_GIFS.jack;   fallbackEmoji = '⭐'; }
+  else if (name.includes('cardio') || name.includes('run') || name.includes('high knees')) { gifUrl = EXERCISE_GIFS.cardio; fallbackEmoji = '🏃'; }
+
+  if (failed) {
     return (
-      <svg viewBox="0 0 100 100" className="w-32 h-32 mx-auto">
-        <style>{`
-          @keyframes squat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(18px); }
-          }
-          .squat-body { animation: squat 2s ease-in-out infinite; }
-        `}</style>
-        <line x1="10" y1="90" x2="90" y2="90" stroke="white" strokeWidth="4" strokeLinecap="round" />
-        <g className="squat-body" stroke="#0D70EA" strokeWidth="6" strokeLinecap="round" fill="none">
-          <circle cx="50" cy="25" r="8" stroke="#FFD13B" fill="#FFD13B" />
-          <line x1="50" y1="33" x2="50" y2="55" />
-          <line x1="50" y1="38" x2="72" y2="38" />
-          <line x1="50" y1="55" x2="35" y2="70" />
-          <line x1="35" y1="70" x2="35" y2="90" />
-        </g>
-      </svg>
-    );
-  }
-  
-  if (name.includes('push-up') || name.includes('pushup') || name.includes('plank') || name.includes('dip')) {
-    const isPlank = name.includes('plank');
-    const isDip = name.includes('dip');
-    return (
-      <svg viewBox="0 0 120 100" className="w-32 h-32 mx-auto">
-        <style>{`
-          @keyframes pushup {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(10px) rotate(-3deg); }
-          }
-          @keyframes plank-shake {
-            0%, 100% { transform: translate(0, 0); }
-            20% { transform: translate(0.5px, -0.5px); }
-            40% { transform: translate(-0.5px, 0.5px); }
-            60% { transform: translate(0.5px, 0.5px); }
-            80% { transform: translate(-0.5px, -0.5px); }
-          }
-          .pushup-body { 
-            animation: ${isPlank ? 'plank-shake 0.1s linear infinite' : 'pushup 2.5s ease-in-out infinite'};
-            transform-origin: ${isDip ? '20px 80px' : '90px 80px'}; 
-          }
-        `}</style>
-        <line x1="10" y1="85" x2="110" y2="85" stroke="white" strokeWidth="4" strokeLinecap="round" />
-        <g className="pushup-body" stroke="#0D70EA" strokeWidth="6" strokeLinecap="round" fill="none">
-          {isDip ? (
-            // Dips animation
-            <>
-              <circle cx="35" cy="30" r="8" stroke="#FFD13B" fill="#FFD13B" />
-              <line x1="35" y1="38" x2="35" y2="65" />
-              <line x1="35" y1="45" x2="55" y2="45" />
-              <line x1="35" y1="65" x2="55" y2="80" />
-            </>
-          ) : (
-            // Pushups/Planks animation
-            <>
-              <circle cx="20" cy="40" r="8" stroke="#FFD13B" fill="#FFD13B" />
-              <line x1="28" y1="45" x2="90" y2="80" />
-              <line x1="90" y1="80" x2="90" y2="85" />
-              {isPlank ? (
-                <>
-                  <line x1="30" y1="48" x2="30" y2="85" />
-                  <line x1="30" y1="85" x2="45" y2="85" />
-                </>
-              ) : (
-                <>
-                  <line x1="30" y1="48" x2="25" y2="65" />
-                  <line x1="25" y1="65" x2="35" y2="85" />
-                </>
-              )}
-            </>
-          )}
-        </g>
-      </svg>
+      <div className="w-36 h-36 flex items-center justify-center text-7xl mx-auto">
+        {fallbackEmoji}
+      </div>
     );
   }
 
-  if (name.includes('jumping jack') || name.includes('jack') || name.includes('circle')) {
-    const isCircles = name.includes('circle');
-    return (
-      <svg viewBox="0 0 100 100" className="w-32 h-32 mx-auto">
-        <style>{`
-          @keyframes jack-body {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(0.96); }
-          }
-          @keyframes jack-limbs {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(20deg); }
-          }
-          @keyframes jack-limbs-opp {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(-20deg); }
-          }
-          @keyframes circle-arms {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          .jack-body { animation: jack-body 1s ease-in-out infinite; }
-          .left-arm { animation: ${isCircles ? 'circle-arms 2s linear infinite' : 'jack-limbs 1s ease-in-out infinite'}; transform-origin: 50px 35px; }
-          .right-arm { animation: ${isCircles ? 'circle-arms 2s linear infinite' : 'jack-limbs-opp 1s ease-in-out infinite'}; transform-origin: 50px 35px; }
-          .left-leg { animation: jack-limbs 1s ease-in-out infinite; transform-origin: 50px 60px; }
-          .right-leg { animation: jack-limbs-opp 1s ease-in-out infinite; transform-origin: 50px 60px; }
-        `}</style>
-        <line x1="10" y1="95" x2="90" y2="95" stroke="white" strokeWidth="4" strokeLinecap="round" />
-        <g className="jack-body" stroke="#0D70EA" strokeWidth="6" strokeLinecap="round" fill="none">
-          <circle cx="50" cy="20" r="8" stroke="#FFD13B" fill="#FFD13B" />
-          <line x1="50" y1="28" x2="50" y2="60" />
-          <line className="left-arm" x1="50" y1="35" x2="25" y2="20" />
-          <line className="right-arm" x1="50" y1="35" x2="75" y2="20" />
-          <line className="left-leg" x1="50" y1="60" x2="30" y2="90" />
-          <line className="right-leg" x1="50" y1="60" x2="70" y2="90" />
-        </g>
-      </svg>
-    );
-  }
-
-  // Default animation (High Knees / Running)
   return (
-    <svg viewBox="0 0 100 100" className="w-32 h-32 mx-auto">
-      <style>{`
-        @keyframes bounce-run {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
-        }
-        .run-body { animation: bounce-run 0.8s ease-in-out infinite; }
-      `}</style>
-      <line x1="10" y1="90" x2="90" y2="90" stroke="white" strokeWidth="4" strokeLinecap="round" />
-      <g className="run-body" stroke="#0D70EA" strokeWidth="6" strokeLinecap="round" fill="none">
-        <circle cx="50" cy="20" r="8" stroke="#FFD13B" fill="#FFD13B" />
-        <line x1="50" y1="28" x2="50" y2="58" />
-        <line x1="50" y1="35" x2="30" y2="45" />
-        <line x1="50" y1="35" x2="70" y2="40" />
-        <line x1="50" y1="58" x2="38" y2="75" />
-        <line x1="38" y1="75" x2="48" y2="90" />
-        <line x1="50" y1="58" x2="62" y2="75" />
-        <line x1="62" y1="75" x2="55" y2="90" />
-      </g>
-    </svg>
+    <img
+      src={gifUrl}
+      alt={exerciseName}
+      className="w-40 h-40 mx-auto rounded-2xl object-cover border-2 border-white/20 shadow-[0_0_20px_rgba(13,112,234,0.4)]"
+      onError={() => setFailed(true)}
+    />
   );
 };
 
+// ── DorySvg mascot ─────────────────────────────────────────────────────────────
 const DorySvg = ({ className = 'w-16 h-16' }) => (
   <svg viewBox="0 0 100 80" className={className}>
     {/* Tail (yellow) */}
@@ -258,7 +155,6 @@ const DorySvg = ({ className = 'w-16 h-16' }) => (
     <path d="M45 48 C42 55, 48 60, 52 52 C50 48, 46 47, 45 48 Z" fill="#FFD13B" stroke="#b48b00" strokeWidth="1" />
   </svg>
 );
-
 
 
 // ── Main App ──────────────────────────────────────────────────────────────────
