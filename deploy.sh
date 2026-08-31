@@ -44,10 +44,23 @@ else
   echo "Warning: Nabd.jpg not found, skipping splash setup."
 fi
 
+# 5. Hot restart backend & kiosk immediately to apply changes without rebooting
+echo "Restarting kiosk and backend services to apply changes..."
+pkill -f kiosk_start.sh || true
+pkill -f uvicorn || true
+pkill -f chromium || true
+pkill -f chromium-browser || true
+
+# If display is active, relaunch kiosk_start.sh
+if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then
+  echo "Active graphical session detected. Relaunching Kiosk interface..."
+  nohup "$HOME/mony_app/kiosk_start.sh" > /dev/null 2>&1 &
+fi
+
 echo "=========================================================="
 echo " ✔ Deployment successful!"
-echo " The application is configured to run natively."
-echo " To start the touch-screen kiosk visual interface,"
-echo " restart your desktop environment or reboot the Pi:"
-echo "   sudo reboot"
+echo " The application has been updated and restarted."
+echo " If you do not see the updated kiosk on screen, run:"
+echo "   pkill -HUP labwc"
+echo " (or manually reboot the Pi: sudo reboot)"
 echo "=========================================================="

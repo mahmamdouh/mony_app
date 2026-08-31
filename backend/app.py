@@ -847,6 +847,13 @@ async def trigger_prayer_sync():
     return {"status": "syncing"}
 
 # ── Serve frontend ───────────────────────────────────────────────────────
-STATIC_DIR = "/app/static"
+if os.path.exists("/app/static"):
+    STATIC_DIR = "/app/static"
+else:
+    STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "static"))
+
 if os.path.exists(STATIC_DIR):
     app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+else:
+    print(f"Warning: Static directory '{STATIC_DIR}' not found!")
+
