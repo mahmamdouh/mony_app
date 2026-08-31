@@ -14,7 +14,29 @@ chmod -R 777 data sounds
 echo "Configuring permissions for kiosk_start.sh..."
 chmod +x kiosk_start.sh
 
-# 3. Configure Labwc Autostart
+# 3. Build the frontend (Vite) and copy into backend/static/
+echo "[BUILD] Building frontend with npm..."
+cd frontend
+
+# Install npm dependencies if node_modules is missing
+if [ ! -d "node_modules" ]; then
+  echo "[BUILD] Installing npm dependencies..."
+  npm install
+fi
+
+npm run build
+echo "[BUILD] Frontend build complete."
+
+cd ..
+
+# Copy built frontend into backend/static/ (creates it if missing)
+echo "[BUILD] Copying built frontend to backend/static/..."
+rm -rf backend/static
+mkdir -p backend/static
+cp -r frontend/dist/. backend/static/
+echo "[BUILD] backend/static/ updated with latest build."
+
+# 4. Configure Labwc Autostart
 echo "Configuring Labwc compositor autostart..."
 mkdir -p "$HOME/.config/labwc"
 AUTOSTART_FILE="$HOME/.config/labwc/autostart"
@@ -28,7 +50,7 @@ fi
 echo "$HOME/mony_app/kiosk_start.sh &" >> "$AUTOSTART_FILE"
 echo "Labwc autostart config updated successfully."
 
-# 4. Configure custom boot splash image
+# 5. Configure custom boot splash image
 echo "Configuring boot splash screen image..."
 if [ -f "$HOME/mony_app/nemo_reef.png" ]; then
   echo "Converting and copying nemo_reef.png to boot splash..."
@@ -41,10 +63,10 @@ elif [ -f "$HOME/mony_app/Nabd.jpg" ]; then
   sudo update-initramfs -u || true
   echo "Boot splash screen updated."
 else
-  echo "Warning: Nabd.jpg not found, skipping splash setup."
+  echo "Warning: splash image not found, skipping splash setup."
 fi
 
-# 5. Hot restart backend & kiosk immediately to apply changes without rebooting
+# 6. Hot restart backend & kiosk immediately to apply changes without rebooting
 echo "Restarting kiosk and backend services to apply changes..."
 pkill -f kiosk_start.sh || true
 pkill -f uvicorn || true

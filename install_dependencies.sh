@@ -23,7 +23,12 @@ sudo apt-get install -y \
   python3-pip \
   python3-venv \
   fonts-noto-color-emoji \
-  plymouth
+  plymouth \
+  nodejs \
+  npm
+
+# Upgrade npm to latest and install n (node version manager) for stability
+sudo npm install -g npm@latest || true
 
 
 # 3. Create host python virtual environment for backend and install requirements natively

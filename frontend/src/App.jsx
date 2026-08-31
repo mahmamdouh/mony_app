@@ -1269,64 +1269,108 @@ function App() {
              downloaded.includes(filename);
     };
 
+    // Per-file status from backend
+    const fileStatuses = (downloadStatus && downloadStatus.file_statuses) || {};
+    const getFileIcon = (filename) => {
+      const st = fileStatuses[filename];
+      if (st === 'done') return { icon: '✅', color: 'text-green-400' };
+      if (st === 'failed') return { icon: '❌', color: 'text-red-400' };
+      if (st === 'downloading') return { icon: '⏳', color: 'text-yellow-400 animate-pulse' };
+      return { icon: '⬜', color: 'text-slate-500' };
+    };
+    const hasFailures = downloadStatus && (downloadStatus.failed_files || []).length > 0;
+    const allDone = downloadStatus && downloadStatus.status === 'completed';
+    const isPartial = downloadStatus && downloadStatus.status === 'partial';
+
     return (
-      <div className="flex flex-col gap-6 w-full h-full max-h-[80vh] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-4 w-full h-full max-h-[80vh] overflow-y-auto pr-1">
         {/* Downloader HUD */}
         <GlassPanel className="border border-dory-blue/20">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-left">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <span>📥</span> Audio Resources Manager
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+                  <path d="M12 3v13M7 11l5 5 5-5" stroke="#0D70EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5 21h14" stroke="#0D70EA" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                Audio Resources Manager
               </h3>
-              <p className="text-xs text-slate-300 mt-1">Download and manage your Adhkar and Hadith offline libraries.</p>
+              <p className="text-xs text-slate-300 mt-1">
+                {allDone && 'All files downloaded successfully!'}
+                {isPartial && `Downloaded with errors — ${(downloadStatus.failed_files||[]).length} file(s) failed`}
+                {!allDone && !isPartial && 'Download Adhkar & Hadith audio for offline use.'}
+              </p>
             </div>
-            <button
-              onClick={downloadResources}
-              disabled={isDownloadingResources}
-              className={`text-sm font-bold px-6 py-2.5 rounded-full shadow transition-all ${
-                isDownloadingResources
-                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                  : 'bg-dory-blue text-white hover:bg-dory-blue/80'
-              }`}
-            >
-              {isDownloadingResources ? 'Downloading...' : 'Download Library'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={downloadResources}
+                disabled={isDownloadingResources}
+                className={`text-sm font-bold px-6 py-2.5 rounded-full shadow transition-all ${
+                  isDownloadingResources
+                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                    : 'bg-dory-blue text-white hover:bg-dory-blue/80'
+                }`}
+              >
+                {isDownloadingResources ? 'Downloading...' : (allDone ? 'Re-Download' : 'Download Library')}
+              </button>
+              {hasFailures && !isDownloadingResources && (
+                <button
+                  onClick={downloadResources}
+                  className="text-sm font-bold px-4 py-2.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 transition-all"
+                >
+                  Retry Failed
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Progress bar */}
-          {(isDownloadingResources || (downloadStatus && downloadStatus.status === 'downloading')) && (
-            <div className="mt-6 bg-black/30 p-5 rounded-[22px] border border-white/5 text-left">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-bold text-dory-yellow truncate max-w-[250px]">
-                  {downloadStatus && downloadStatus.status === 'downloading'
-                    ? `Downloading: ${downloadStatus.current_file || 'Waiting...'}`
-                    : 'Completed'}
-                </span>
-                <span className="text-sm font-black text-white">{downloadStatus ? downloadStatus.progress || 0 : 0}%</span>
+          {/* Always-visible per-file status grid */}
+          <div className="mt-4 bg-black/30 p-4 rounded-[18px] border border-white/5 text-left">
+            {/* Progress bar — only shown while downloading */}
+            {isDownloadingResources && (
+              <div className="mb-3">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-bold text-dory-yellow truncate">
+                    {downloadStatus?.current_file ? `Fetching: ${downloadStatus.current_file}` : 'Starting...'}
+                  </span>
+                  <span className="text-xs font-black text-white">{downloadStatus?.progress || 0}%</span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-dory-yellow h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${downloadStatus?.progress || 0}%` }}
+                  />
+                </div>
               </div>
-              <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
-                <div
-                  className="bg-dory-yellow h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${downloadStatus ? downloadStatus.progress || 0 : 0}%` }}
-                />
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-                {expectedFiles.map(f => {
-                  const done = isDone(f.name);
-                  return (
-                    <div key={f.name} className="flex items-center gap-2 text-xs">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
-                        done ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-slate-700 text-slate-400'
-                      }`}>
-                        {done ? '✓' : '○'}
-                      </span>
-                      <span className={done ? 'text-slate-200' : 'text-slate-500'}>{f.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {expectedFiles.map(f => {
+                const { icon, color } = getFileIcon(f.name);
+                const done = isDone(f.name);
+                return (
+                  <div key={f.name} className={`flex items-center gap-2 text-xs p-2 rounded-xl ${
+                    done ? 'bg-green-500/10 border border-green-500/20' :
+                    fileStatuses[f.name] === 'failed' ? 'bg-red-500/10 border border-red-500/20' :
+                    fileStatuses[f.name] === 'downloading' ? 'bg-yellow-500/10 border border-yellow-500/20 animate-pulse' :
+                    'bg-white/5 border border-white/5'
+                  }`}>
+                    <span className={`text-base ${color}`}>{icon}</span>
+                    <span className={done ? 'text-slate-200' : fileStatuses[f.name] === 'failed' ? 'text-red-300' : 'text-slate-500'}>
+                      {f.label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          )}
+            {(downloadStatus?.errors || []).length > 0 && (
+              <div className="mt-3 p-2 bg-red-500/10 border border-red-500/20 rounded-xl">
+                <p className="text-xs font-bold text-red-400 mb-1">Errors:</p>
+                {(downloadStatus.errors || []).map((e, i) => (
+                  <p key={i} className="text-[10px] text-red-300 truncate">{e}</p>
+                ))}
+              </div>
+            )}
+          </div>
         </GlassPanel>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
@@ -1859,7 +1903,7 @@ function App() {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div
-      className="min-h-screen text-slate-100 p-4 md:p-8 pb-32 flex flex-col font-sans relative overflow-hidden"
+      className="h-screen text-slate-100 p-2 pb-20 flex flex-col font-sans relative overflow-hidden"
       style={{
         backgroundImage: 'url("/nemo_reef.png")',
         backgroundSize: 'cover',
@@ -1937,26 +1981,70 @@ function App() {
         </main>
       </div>
 
-      {/* Floating Bottom Navigation Dock */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/22 backdrop-blur-glass border-[1.5px] border-white/55 px-6 py-3 rounded-full flex gap-3 shadow-[0_8px_32px_0_rgba(0,31,63,0.25)]">
+      {/* Floating Bottom Navigation Dock — colorful inline SVG icons */}
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-black/60 backdrop-blur-xl border border-white/20 px-4 py-2.5 rounded-full flex gap-1 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
         {[
-          { id: 'home', label: 'Home', icon: <Home className="w-5 h-5" /> },
-          { id: 'islamic', label: 'Islamic', icon: <BookOpen className="w-5 h-5" /> },
-          { id: 'workout', label: 'Workout', icon: <Dumbbell className="w-5 h-5" /> },
-          { id: 'kids', label: 'Kids Corner', icon: <Gamepad2 className="w-5 h-5" /> },
-          { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> }
+          {
+            id: 'home', label: 'Home',
+            icon: (
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+                <path d="M3 12L12 3l9 9" stroke="#60BDFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 21V12h6v9" stroke="#60BDFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 10v11h14V10" stroke="#0D70EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )
+          },
+          {
+            id: 'islamic', label: 'Islamic',
+            icon: (
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+                <path d="M12 2a7 7 0 1 0 7 7 5 5 0 1 1-5-5 7 7 0 0 0-2 0z" fill="#FFD13B" stroke="#FFD13B" strokeWidth="0.5"/>
+                <circle cx="17" cy="5" r="1.5" fill="#FFD13B"/>
+                <path d="M4 20 Q12 14 20 20" stroke="#2ECC71" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            )
+          },
+          {
+            id: 'workout', label: 'Workout',
+            icon: (
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+                <rect x="2" y="11" width="4" height="2" rx="1" fill="#FF6B57"/>
+                <rect x="18" y="11" width="4" height="2" rx="1" fill="#FF6B57"/>
+                <rect x="6" y="8" width="2" height="8" rx="1" fill="#FF6B57"/>
+                <rect x="16" y="8" width="2" height="8" rx="1" fill="#FF6B57"/>
+                <rect x="8" y="10" width="8" height="4" rx="2" fill="#FF9580"/>
+              </svg>
+            )
+          },
+          {
+            id: 'kids', label: 'Kids',
+            icon: (
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+                <polygon points="12,2 15,9 22,9 16.5,13.5 18.5,21 12,16.5 5.5,21 7.5,13.5 2,9 9,9" fill="#FFD13B" stroke="#FFA000" strokeWidth="0.5"/>
+              </svg>
+            )
+          },
+          {
+            id: 'settings', label: 'Settings',
+            icon: (
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+                <circle cx="12" cy="12" r="3" fill="#94A3B8" stroke="#CBD5E1" strokeWidth="1"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            )
+          }
         ].map(t => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === t.id
-                ? 'bg-dory-blue text-white shadow-[0_0_12px_rgba(13,112,234,0.4)]'
-                : 'text-slate-300 hover:text-white hover:bg-white/5'
+                ? 'bg-dory-blue/80 text-white shadow-[0_0_16px_rgba(13,112,234,0.6)] scale-105'
+                : 'text-slate-300 hover:text-white hover:bg-white/10'
             }`}
           >
             {t.icon}
-            <span className="hidden sm:inline">{t.label}</span>
+            <span className="text-[11px]">{t.label}</span>
           </button>
         ))}
       </nav>

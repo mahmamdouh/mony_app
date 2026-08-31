@@ -13,12 +13,29 @@
   --color-glass-border: rgba(255, 255, 255, 0.55);
 }
 
-body {
+/* ── Screen-fit for 10.1" kiosk — no page scroll ─────────────────────────── */
+html, body, #root {
   margin: 0;
   padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
   /* Dark modern background for glassmorphism */
   background: linear-gradient(135deg, #09090b 0%, #171717 100%);
   color: #f8fafc;
-  min-height: 100vh;
   font-family: var(--font-sans);
+  /* Enable smooth touch scrolling inside scrollable children */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbars globally but still allow scrolling inside panels */
+* {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/Edge */
+}
+*::-webkit-scrollbar {
+  display: none;                /* Chrome/Safari */
 }
