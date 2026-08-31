@@ -1,6 +1,7 @@
 import os
 import urllib.request
 import threading
+import ssl
 
 if os.path.exists("/sounds"):
     SOUNDS_BASE = "/sounds"
@@ -45,7 +46,23 @@ def download_file(url, dest, filename, total_files):
             STATUS["status"] = "downloading"
             
         print(f"Downloading {url} to {dest}...")
-        urllib.request.urlretrieve(url, dest)
+        
+        # Bypass SSL verification if needed, and set User-Agent
+        req = urllib.request.Request(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        )
+        
+        context = ssl._create_unverified_context()
+        
+        with urllib.request.urlopen(req, context=context) as response, open(dest, 'wb') as out_file:
+            # Download in chunks of 1MB
+            while True:
+                chunk = response.read(1024 * 1024)
+                if not chunk:
+                    break
+                out_file.write(chunk)
+                
         print(f"Finished downloading {dest}")
         
         with status_lock:
@@ -56,6 +73,12 @@ def download_file(url, dest, filename, total_files):
         print(error_msg)
         with status_lock:
             STATUS["errors"].append(error_msg)
+            # If the download failed, delete the partial/corrupted file to avoid false checkmarks
+            if os.path.exists(dest):
+                try:
+                    os.remove(dest)
+                except Exception as del_err:
+                    print(f"Could not remove partial file {dest}: {del_err}")
 
 def run_download():
     global STATUS
