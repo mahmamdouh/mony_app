@@ -1,17 +1,16 @@
 #!/bin/bash
-# Exit immediately if a command exits with a non-zero status
 set -e
 
 echo "=========================================================="
-echo "          Mony Kiosk: Install System Dependencies         "
+echo "          Mony Kiosk: Install System Dependencies"
 echo "=========================================================="
 
-# 1. Update APT lists
-echo "[1/5] Updating APT package repositories..."
+# 1. Update package list
+echo "[1/4] Updating APT package repositories..."
 sudo apt-get update
 
-# 2. Install Chromium, ALSA utils, unclutter, git, and other kiosk tools
-echo "[2/5] Installing Kiosk dependencies (Chromium, unclutter, alsa-utils)..."
+# 2. Install Chromium, ALSA utils, unclutter, git, gcompris-qt, imagemagick, and python tools
+echo "[2/4] Installing Kiosk dependencies, GCompris, and Python tools..."
 sudo apt-get install -y \
   chromium-browser \
   unclutter \
@@ -20,30 +19,24 @@ sudo apt-get install -y \
   git \
   curl \
   gcompris-qt \
-  imagemagick
+  imagemagick \
+  python3-pip \
+  python3-venv
 
+# 3. Create host python virtual environment for backend and install requirements natively
+echo "[3/4] Creating host python virtual environment for backend..."
+cd "$(dirname "$0")/backend"
+python3 -m venv venv
+./venv/bin/pip install --upgrade pip
+./venv/bin/pip install -r requirements.txt
+cd ..
 
-# 3. Install Docker if missing
-if ! command -v docker >/dev/null 2>&1; then
-  echo "[3/5] Docker not found. Installing Docker using official script..."
-  curl -fsSL https://get.docker.com -o get-docker.sh
-  sudo sh get-docker.sh
-  rm -f get-docker.sh
-else
-  echo "[3/5] Docker is already installed."
-fi
-
-# 4. Add the current user to the docker group
-echo "[4/5] Adding user '$USER' to the docker group..."
-sudo usermod -aG docker $USER
-
-# 5. Disable screen blanking/screensavers in Raspberry Pi OS
-echo "[5/5] Disabling Raspberry Pi screen blanking..."
-sudo raspi-config nonint do_blanking 0
+# 4. Disable screen blanking/screensavers in Raspberry Pi OS
+echo "[4/4] Disabling Raspberry Pi screen blanking..."
+sudo raspi-config nonint do_blanking 0 || true
 
 echo "=========================================================="
 echo " ✔ Installation complete!"
-echo " IMPORTANT: Please log out and back in, or run:"
-echo "   newgrp docker"
-echo " before running deploy.sh so the Docker group is loaded."
+echo " Native host environment is configured."
+echo " Now run './deploy.sh' to configure the boot splash and compile assets."
 echo "=========================================================="

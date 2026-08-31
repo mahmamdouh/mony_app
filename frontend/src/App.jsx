@@ -242,6 +242,24 @@ const WorkoutAnimation = ({ exerciseName }) => {
   );
 };
 
+const DorySvg = ({ className = 'w-16 h-16' }) => (
+  <svg viewBox="0 0 100 80" className={className}>
+    {/* Tail (yellow) */}
+    <path d="M70 40 L95 20 L90 40 L95 60 Z" fill="#FFD13B" stroke="#b48b00" strokeWidth="1.5" />
+    {/* Body (blue) */}
+    <ellipse cx="45" cy="40" rx="30" ry="25" fill="#0D70EA" stroke="#003163" strokeWidth="2" />
+    {/* Black markings */}
+    <path d="M30 25 C45 20, 55 30, 60 25 C65 20, 68 25, 70 30 C55 35, 45 30, 30 25 Z" fill="#1A1A1A" />
+    {/* Eye (white + black) */}
+    <circle cx="28" cy="32" r="7" fill="white" />
+    <circle cx="27" cy="32" r="3.5" fill="#1A1A1A" />
+    <circle cx="25" cy="30" r="1" fill="white" />
+    {/* Fin (yellow & blue) */}
+    <path d="M45 48 C42 55, 48 60, 52 52 C50 48, 46 47, 45 48 Z" fill="#FFD13B" stroke="#b48b00" strokeWidth="1" />
+  </svg>
+);
+
+
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 function App() {
@@ -914,28 +932,28 @@ function App() {
       {/* Left Column (Span 3) */}
       <div className="lg:col-span-3 flex flex-col gap-6">
         {/* Room Temperature Widget */}
-        <GlassPanel className="flex items-center gap-4 border border-dory-blue/20">
-          <div className="p-4 bg-dory-blue/20 rounded-2xl border border-dory-blue/30 text-dory-blue">
+        <GlassPanel className="flex items-center gap-4 bg-reef-coral/25 border-reef-coral/40 shadow-[0_8px_32px_0_rgba(255,107,87,0.25)] rounded-[26px]">
+          <div className="p-4 bg-white/20 rounded-2xl border border-white/30 text-white">
             <Thermometer className="w-10 h-10 animate-pulse" />
           </div>
           <div className="text-left">
-            <h4 className="text-sm font-bold text-slate-300">Room Temp</h4>
+            <h4 className="text-sm font-bold text-ice-blue">Room Temp</h4>
             <p className="text-4xl font-black text-white">22°C</p>
           </div>
         </GlassPanel>
 
         {/* Family Calendar / Schedule list */}
-        <GlassPanel className="flex-grow flex flex-col border border-dory-blue/20 max-h-[48vh] overflow-hidden">
+        <GlassPanel className="flex-grow flex flex-col bg-dory-yellow/20 border-dory-yellow/45 shadow-[0_8px_32px_0_rgba(255,209,59,0.2)] rounded-[26px] max-h-[48vh] overflow-hidden">
           <h3 className="text-lg font-bold flex items-center gap-2 mb-3 text-left">
-            <Calendar className="w-4 h-4 text-dory-yellow" /> Family Schedule
+            <Calendar className="w-4 h-4 text-white" /> Family Schedule
           </h3>
           <div className="space-y-3 flex-grow overflow-y-auto pr-1 text-left">
             {events.filter(e => !e.notified).length === 0 && (
-              <p className="text-xs text-slate-500 py-6 text-center">No upcoming events scheduled.</p>
+              <p className="text-xs text-white/70 py-6 text-center">No upcoming events scheduled.</p>
             )}
             {events.filter(e => !e.notified).map(evt => (
-              <div key={evt.id} className="p-3 bg-white/5 rounded-xl border border-white/5 text-xs">
-                <div className="flex justify-between items-center text-dory-yellow font-bold mb-1">
+              <div key={evt.id} className="p-3 bg-white/10 rounded-xl border border-white/15 text-xs">
+                <div className="flex justify-between items-center text-white font-bold mb-1">
                   <span>{formatEventDatetime(evt.datetime)}</span>
                 </div>
                 <p className="font-semibold text-white truncate">{evt.label}</p>
@@ -947,10 +965,10 @@ function App() {
 
       {/* Center Hero Column (Span 6) */}
       <div className="lg:col-span-6 flex flex-col gap-6">
-        {/* Framed Cartoon Portrait centerpiece */}
-        <GlassPanel className="flex-grow flex flex-col items-center justify-center p-5 border-[3px] border-reef-coral/80 relative overflow-hidden bg-cover bg-center rounded-[32px] min-h-[300px]">
+        {/* Framed Cartoon Portrait centerpiece with Dory overlay */}
+        <GlassPanel className="flex-grow flex flex-col items-center justify-center p-5 border-[6px] border-reef-coral/95 relative overflow-hidden bg-cover bg-center rounded-[32px] min-h-[300px] shadow-[0_12px_40px_0_rgba(255,107,87,0.4)]">
           {/* Overlay to darken slightly for readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10 z-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10 z-0 pointer-events-none" />
           
           {/* Main cartoon portrait image loaded from Nabd.jpg */}
           <img
@@ -959,32 +977,37 @@ function App() {
             className="absolute inset-0 w-full h-full object-cover z-0"
           />
 
+          {/* Floating animated Dory mascot sticker */}
+          <div className="absolute bottom-4 right-4 z-20 animate-bounce" style={{ animationDuration: '3s' }}>
+            <DorySvg className="w-20 h-20 filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]" />
+          </div>
+
           <div className="relative z-10 mt-auto text-center">
-            <h2 className="text-4xl font-black text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            <h2 className="text-4xl font-black text-white tracking-tight drop-shadow-[0_3px_6px_rgba(0,0,0,0.9)]">
               Dory - Family Hub
             </h2>
-            <p className="text-sm text-ice-blue font-semibold mt-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+            <p className="text-sm text-dory-yellow font-black mt-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
               {time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
         </GlassPanel>
 
         {/* Media Control Player */}
-        <GlassPanel className="flex flex-col border border-dory-blue/20">
+        <GlassPanel className="flex flex-col bg-dory-blue/25 border-dory-blue/40 shadow-[0_8px_32px_0_rgba(13,112,234,0.3)] rounded-[26px]">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0 flex-1 text-left">
               <div className="p-3 bg-dory-yellow/20 rounded-2xl text-dory-yellow flex-shrink-0 animate-spin-slow">
                 <Music className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest text-[10px]">Now Playing</h4>
+                <h4 className="text-sm font-bold text-ice-blue uppercase tracking-widest text-[10px]">Now Playing</h4>
                 <p className="text-base font-bold text-white truncate">{isPlaying ? currentRadio.name : (isSongPlaying ? selectedSong : 'No media playing')}</p>
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={isPlaying ? handlePlayToggle : (selectedSong ? handleSongPlayToggle : null)}
-                className="p-4 bg-dory-blue text-white rounded-full hover:bg-dory-blue/80 transition-colors shadow-lg"
+                className="p-4 bg-dory-yellow text-slate-900 rounded-full hover:bg-dory-yellow/80 transition-colors shadow-lg"
               >
                 {(isPlaying || isSongPlaying) ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current translate-x-0.5" />}
               </button>
@@ -996,18 +1019,18 @@ function App() {
       {/* Right Column (Span 3) */}
       <div className="lg:col-span-3 flex flex-col gap-6">
         {/* User Profile tile */}
-        <GlassPanel className="flex items-center gap-3 border border-dory-blue/20">
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-dory-yellow flex-shrink-0 bg-cover bg-center" style={{ backgroundImage: 'url("/Nabd.jpg")' }} />
+        <GlassPanel className="flex items-center gap-3 bg-dory-yellow/20 border-dory-yellow/45 shadow-[0_8px_32px_0_rgba(255,209,59,0.2)] rounded-[26px]">
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white flex-shrink-0 bg-cover bg-center animate-pulse" style={{ backgroundImage: 'url("/Nabd.jpg")' }} />
           <div className="text-left">
-            <h4 className="text-xs font-bold text-slate-400">Active Profile</h4>
+            <h4 className="text-xs font-bold text-ice-blue">Active Profile</h4>
             <p className="text-base font-bold text-white truncate">Dory Family</p>
           </div>
         </GlassPanel>
 
         {/* Smart Lights IoT Control */}
-        <GlassPanel className="flex flex-col border border-dory-blue/20 text-left">
+        <GlassPanel className="flex flex-col bg-dory-blue/25 border-dory-blue/40 shadow-[0_8px_32px_0_rgba(13,112,234,0.3)] rounded-[26px] text-left">
           <h3 className="text-lg font-bold flex items-center gap-2 mb-3">
-            <Lightbulb className="w-4 h-4 text-dory-yellow" /> Smart Lights
+            <Lightbulb className="w-4 h-4 text-dory-yellow animate-pulse" /> Smart Lights
           </h3>
           <div className="space-y-3">
             {[
@@ -1030,11 +1053,11 @@ function App() {
         </GlassPanel>
 
         {/* Quick Photo Album Previews */}
-        <GlassPanel className="flex-grow flex flex-col border border-dory-blue/20 text-left max-h-[25vh] overflow-hidden">
-          <h3 className="text-sm font-bold text-slate-300 mb-2">Photo Previews</h3>
+        <GlassPanel className="flex-grow flex flex-col bg-reef-coral/25 border-reef-coral/40 shadow-[0_8px_32px_0_rgba(255,107,87,0.25)] rounded-[26px] text-left max-h-[25vh] overflow-hidden">
+          <h3 className="text-sm font-bold text-ice-blue mb-2">Photo Previews</h3>
           <div className="grid grid-cols-2 gap-2 flex-grow overflow-hidden">
             <div className="bg-cover bg-center rounded-xl border border-white/10 shadow" style={{ backgroundImage: 'url("/Nabd.jpg")' }} />
-            <div className="bg-cover bg-center rounded-xl border border-white/10 shadow" style={{ backgroundImage: 'url("/QR.png")' }} />
+            <div className="bg-cover bg-center rounded-xl border border-white/10 shadow" style={{ backgroundImage: 'url("/nemo_reef.png")' }} />
           </div>
         </GlassPanel>
       </div>
@@ -1344,8 +1367,10 @@ function App() {
     ];
 
     const isDone = (filename) => {
-      return musicFiles.some(f => f.split('/').pop() === filename) || 
-             downloadStatus.downloaded_files.includes(filename);
+      const list = musicFiles || [];
+      const downloaded = (downloadStatus && downloadStatus.downloaded_files) || [];
+      return list.some(f => f && typeof f === 'string' && f.split('/').pop() === filename) || 
+             downloaded.includes(filename);
     };
 
     return (
@@ -1373,18 +1398,20 @@ function App() {
           </div>
 
           {/* Progress bar */}
-          {(isDownloadingResources || downloadStatus.status === 'downloading') && (
+          {(isDownloadingResources || (downloadStatus && downloadStatus.status === 'downloading')) && (
             <div className="mt-6 bg-black/30 p-5 rounded-[22px] border border-white/5 text-left">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-bold text-dory-yellow truncate max-w-[250px]">
-                  {downloadStatus.status === 'downloading' ? `Downloading: ${downloadStatus.current_file || 'Waiting...'}` : 'Completed'}
+                  {downloadStatus && downloadStatus.status === 'downloading'
+                    ? `Downloading: ${downloadStatus.current_file || 'Waiting...'}`
+                    : 'Completed'}
                 </span>
-                <span className="text-sm font-black text-white">{downloadStatus.progress}%</span>
+                <span className="text-sm font-black text-white">{downloadStatus ? downloadStatus.progress || 0 : 0}%</span>
               </div>
               <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
                 <div
                   className="bg-dory-yellow h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${downloadStatus.progress}%` }}
+                  style={{ width: `${downloadStatus ? downloadStatus.progress || 0 : 0}%` }}
                 />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
@@ -1938,7 +1965,7 @@ function App() {
     <div
       className="min-h-screen text-slate-100 p-4 md:p-8 pb-32 flex flex-col font-sans relative overflow-hidden"
       style={{
-        backgroundImage: 'url("/Nabd.jpg")',
+        backgroundImage: 'url("/nemo_reef.png")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

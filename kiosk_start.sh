@@ -10,9 +10,17 @@ if command -v unclutter >/dev/null 2>&1; then
   unclutter -idle 0.5 -root &
 fi
 
+# Start native FastAPI python backend server on port 8080 in the background
+echo "Starting native FastAPI backend on port 8080..."
+cd /home/mony/mony_app/backend
+./venv/bin/uvicorn app:app --host 0.0.0.0 --port 8080 > /home/mony/mony_backend.log 2>&1 &
+
+# Wait for backend to warm up
+sleep 3
+
 # Infinite loop to keep Chromium running if it crashes
 while true; do
-  # Clean up Chromium crash state flags so it doesn't show "Chromium didn't shut down correctly" restore banners
+  # Clean up Chromium crash state flags
   PREFS_FILE="$HOME/.config/chromium/Default/Preferences"
   if [ -f "$PREFS_FILE" ]; then
     sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' "$PREFS_FILE"
@@ -29,10 +37,9 @@ while true; do
     exit 1
   fi
 
-  # Launch Chromium in Kiosk mode pointing to the local dashboard
-  # Also set autoplay policy so alarms/Adhan sound triggers work without requiring a user tap first.
-  # Use password-store=basic to disable system keyring unlock prompts.
-  $CHROME_BIN --noerrdialogs --disable-infobars --kiosk http://localhost --autoplay-policy=no-user-gesture-required --no-sandbox --password-store=basic
+  # Launch Chromium in Kiosk mode pointing to the native dashboard on 8080
+  # Set autoplay policy and password-store basic flags
+  $CHROME_BIN --noerrdialogs --disable-infobars --kiosk http://localhost:8080 --autoplay-policy=no-user-gesture-required --no-sandbox --password-store=basic
 
   sleep 5
 done

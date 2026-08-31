@@ -2,8 +2,15 @@ import os
 import urllib.request
 import threading
 
-ADHIKR_DIR = "/sounds/Adhkar"
-HADITH_DIR = "/sounds/Hadith"
+if os.path.exists("/sounds"):
+    SOUNDS_BASE = "/sounds"
+else:
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    SOUNDS_BASE = os.path.join(PROJECT_ROOT, "sounds")
+
+ADHIKR_DIR = os.path.join(SOUNDS_BASE, "Adhkar")
+HADITH_DIR = os.path.join(SOUNDS_BASE, "Hadith")
+
 
 RESOURCES = {
     "Adhkar": [

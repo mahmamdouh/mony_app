@@ -87,7 +87,11 @@ app.add_middleware(
 
 
 # ── Database ─────────────────────────────────────────────────────────────────
-DB_PATH = "/data/mony.db"
+if os.path.exists("/data") or os.environ.get("IN_DOCKER"):
+    DB_PATH = "/data/mony.db"
+else:
+    DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/mony.db"))
+
 
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
@@ -168,12 +172,21 @@ process_lock = threading.Lock()
 # { "type": "none" | "radio" | "song" | "azan",  "data": url_or_path }
 current_playing_state: dict = {"type": "none", "data": None}
 
-SONGS_DIR  = "/sounds/songs"
-INTRO_DIR  = "/sounds/intro"
-AZAN_DIR   = "/sounds/Azan"
-MUSIC_DIR  = "/data/music"
-ADHIKR_DIR = "/sounds/Adhkar"
-HADITH_DIR = "/sounds/Hadith"
+if os.path.exists("/sounds"):
+    SOUNDS_BASE = "/sounds"
+    DATA_BASE = "/data"
+else:
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    SOUNDS_BASE = os.path.join(PROJECT_ROOT, "sounds")
+    DATA_BASE = os.path.join(PROJECT_ROOT, "data")
+
+SONGS_DIR  = os.path.join(SOUNDS_BASE, "songs")
+INTRO_DIR  = os.path.join(SOUNDS_BASE, "intro")
+AZAN_DIR   = os.path.join(SOUNDS_BASE, "Azan")
+MUSIC_DIR  = os.path.join(DATA_BASE, "music")
+ADHIKR_DIR = os.path.join(SOUNDS_BASE, "Adhkar")
+HADITH_DIR = os.path.join(SOUNDS_BASE, "Hadith")
+
 
 def kill_current():
     global current_process, current_playing_state
