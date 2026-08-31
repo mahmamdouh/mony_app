@@ -51,10 +51,18 @@ pkill -f uvicorn || true
 pkill -f chromium || true
 pkill -f chromium-browser || true
 
-# If display is active, relaunch kiosk_start.sh
+# Auto-detect display session for SSH shells
+if [ -z "$WAYLAND_DISPLAY" ] && [ -S "/run/user/1000/wayland-0" ]; then
+  export WAYLAND_DISPLAY="wayland-0"
+  export XDG_RUNTIME_DIR="/run/user/1000"
+fi
+
+# Relaunch kiosk_start.sh if active session is detected
 if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then
   echo "Active graphical session detected. Relaunching Kiosk interface..."
   nohup "$HOME/mony_app/kiosk_start.sh" > /dev/null 2>&1 &
+else
+  echo "No active graphical session detected. Kiosk will start on next desktop login."
 fi
 
 echo "=========================================================="
