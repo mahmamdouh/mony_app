@@ -866,9 +866,9 @@ function App() {
           {/* Overlay to darken slightly for readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10 z-0 pointer-events-none" />
           
-          {/* Main cartoon portrait image loaded from Nabd.jpg */}
+          {/* Main cartoon portrait image - Galata Tower family selfie */}
           <img
-            src="/Nabd.jpg"
+            src="/family.jpg"
             alt="Family Portrait centerpiece"
             className="absolute inset-0 w-full h-full object-cover z-0"
           />
@@ -916,7 +916,7 @@ function App() {
       <div className="lg:col-span-3 flex flex-col gap-6">
         {/* User Profile tile */}
         <GlassPanel className="flex items-center gap-3 bg-dory-yellow/20 border-dory-yellow/45 shadow-[0_8px_32px_0_rgba(255,209,59,0.2)] rounded-[26px]">
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white flex-shrink-0 bg-cover bg-center animate-pulse" style={{ backgroundImage: 'url("/Nabd.jpg")' }} />
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white flex-shrink-0 bg-cover bg-center animate-pulse" style={{ backgroundImage: 'url("/family.jpg")' }} />
           <div className="text-left">
             <h4 className="text-xs font-bold text-ice-blue">Active Profile</h4>
             <p className="text-base font-bold text-white truncate">Dory Family</p>
@@ -952,7 +952,7 @@ function App() {
         <GlassPanel className="flex-grow flex flex-col bg-reef-coral/25 border-reef-coral/40 shadow-[0_8px_32px_0_rgba(255,107,87,0.25)] rounded-[26px] text-left max-h-[25vh] overflow-hidden">
           <h3 className="text-sm font-bold text-ice-blue mb-2">Photo Previews</h3>
           <div className="grid grid-cols-2 gap-2 flex-grow overflow-hidden">
-            <div className="bg-cover bg-center rounded-xl border border-white/10 shadow" style={{ backgroundImage: 'url("/Nabd.jpg")' }} />
+            <div className="bg-cover bg-center rounded-xl border border-white/10 shadow" style={{ backgroundImage: 'url("/family.jpg")' }} />
             <div className="bg-cover bg-center rounded-xl border border-white/10 shadow" style={{ backgroundImage: 'url("/nemo_reef.png")' }} />
           </div>
         </GlassPanel>
